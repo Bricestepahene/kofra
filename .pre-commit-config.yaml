@@ -1,0 +1,66 @@
+# KOFRA — hooks pre-commit
+#
+# Installation (une fois, en local) :
+#   pip install pre-commit      # ou : pipx install pre-commit / brew install pre-commit
+#   pre-commit install
+#
+# À partir de là, ces hooks tournent automatiquement à chaque `git commit` sur
+# les fichiers stagés. Pour les lancer manuellement sur tout le dépôt :
+#   pre-commit run --all-files
+#
+# Ce fichier est un FILET LOCAL, pas un remplacement de la CI de sécurité
+# (.github/workflows/security.yml — gosec, govulncheck, Trivy, CodeQL, npm audit,
+# Dependabot, Dependency Review, SBOM — voir CLAUDE.md §2 et §5,
+# docs/SECURITY_POLICY.md). Ce workflow n'existe pas encore dans le dépôt ;
+# ces hooks sont volontairement alignés dessus pour ne pas surprendre une fois
+# qu'il sera en place. Contourner ces hooks localement (`git commit --no-verify`)
+# ne contourne rien côté CI — le commit sera quand même scanné en amont de la fusion.
+#
+# Détection de secrets : gitleaks, pas detect-secrets.
+# Raison du choix : gitleaks scanne le diff stagé directement, sans fichier de
+# baseline à générer, versionner et ré-approuver à chaque faux positif accepté
+# (contrairement à detect-secrets et son .secrets.baseline). Sur un dépôt qui
+# démarre, cette friction n'a pas de contrepartie. gitleaks est aussi l'outil déjà
+# prévu côté CI (CLAUDE.md §2) : un seul scanner, deux points de contrôle
+# (local + CI), une seule configuration de règles à faire évoluer.
+
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # Go — gofmt uniquement sur les .go effectivement stagés. Nécessite un `go`
+  # local ; sans .go staged (cas de la majorité des commits aujourd'hui, le
+  # control plane n'étant pas encore initialisé), ce hook ne se déclenche pas.
+  - repo: local
+    hooks:
+      - id: gofmt
+        name: gofmt (control-plane)
+        entry: gofmt -l -w
+        language: system
+        files: \.go$
+        pass_filenames: true
+
+  # TypeScript / JSON / YAML / Markdown — même formateur que `make lint` côté web
+  # (CLAUDE.md §3). Le lockfile pnpm est exclu : généré, jamais reformaté à la main.
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        types_or: [ts, tsx, javascript, json, yaml, markdown]
+        exclude: ^pnpm-lock\.yaml$

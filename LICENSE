@@ -1,0 +1,40 @@
+KOFRA — Tous droits réservés
+
+Copyright (c) 2026 KOFRA. Tous droits réservés.
+
+Ce dépôt et l'ensemble de son contenu — code source, spécifications, documentation,
+schémas d'architecture, design system et tout autre élément qu'il contient — sont la
+propriété exclusive de KOFRA. La structure juridique porteuse de cette propriété est
+en cours de formalisation (voir EP-00.01 du backlog, docs/execution/kofra-v1-backlog.yaml) ;
+jusqu'à sa publication, "KOFRA" désigne le fondateur du projet et les personnes qu'il
+mandate explicitement.
+
+Ce logiciel n'est PAS distribué sous licence open source. `package.json` déclare la
+licence "UNLICENSED" : cette mention est la source de vérité machine-lisible pour les
+outils (npm, pnpm, scanners de dépendances) ; ce fichier LICENSE en est l'expression
+lisible par un humain.
+
+Sauf autorisation écrite préalable et explicite de KOFRA :
+
+- Aucune copie, reproduction, publication ou redistribution de tout ou partie de ce
+  dépôt n'est autorisée.
+- Aucune utilisation — y compris à des fins internes, commerciales, de test ou
+  d'évaluation — n'est autorisée en dehors du périmètre défini par un accord
+  contractuel avec KOFRA (contrat de travail, mandat, accord de cabinet pilote,
+  accord de partenariat).
+- Aucune modification, œuvre dérivée, décompilation ou intégration dans un autre
+  produit ou service n'est autorisée.
+- L'accès accordé à ce dépôt (invitation, contrat, collaboration ponctuelle) ne
+  constitue pas, à lui seul, une licence d'utilisation au-delà du cadre précis pour
+  lequel cet accès a été accordé.
+
+Toute violation de ces termes peut faire l'objet d'une action en justice.
+
+Pour toute demande d'autorisation d'usage, de licence commerciale ou de partenariat,
+contacter KOFRA. Un canal de contact commercial dédié n'est pas encore publié ; en
+attendant, l'adresse security@kofra.io (docs/VULNERABILITY_DISCLOSURE.md) ne couvre
+que les signalements de vulnérabilité de sécurité, pas les demandes de licence.
+
+Ce logiciel est fourni "en l'état", sans garantie d'aucune sorte, expresse ou
+implicite, y compris sans garantie de qualité marchande ou d'adéquation à un usage
+particulier.

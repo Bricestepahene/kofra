@@ -1,0 +1,42 @@
+# Normalisation des fins de ligne : LF partout (voir .editorconfig), détection
+# automatique texte/binaire par Git pour tout le reste.
+* text=auto eol=lf
+
+# Lockfile généré par pnpm — jamais édité à la main, jamais lu dans une revue
+# ligne à ligne. -diff évite qu'un `git diff`/PR l'affiche comme du code écrit.
+pnpm-lock.yaml -diff linguist-generated=true
+
+# Sources du control plane Go — toujours LF, y compris si un contributeur
+# commite depuis Windows.
+*.go text eol=lf
+
+# TypeScript / JavaScript (web/, extension/, packages/*, scripts/)
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+
+# Config, contrats, documentation
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.sql text eol=lf
+
+# Artefacts générés (build web, bundles) — s'ils finissent un jour versionnés,
+# pas de diff ligne à ligne utile en revue.
+*.min.js -diff linguist-generated=true
+*.min.css -diff linguist-generated=true
+
+# Binaires — jamais de normalisation de fin de ligne dessus. Prévu pour les
+# assets du design system (packages/kofra-ui) et de l'app web, même si aucun
+# n'est encore versionné.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
