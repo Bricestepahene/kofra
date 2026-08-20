@@ -1,0 +1,125 @@
+# CI qualité — extension (EP-02.05).
+#
+# Se déclenche sur extension/** (n'existe pas encore sur le disque au moment
+# où ce fichier est écrit — le workflow restera inactif tant qu'aucun commit
+# n'y touche) et sur packages/** (dépendance partagée, notamment
+# kofra-crypto/kofra-protocol dont dépend directement vault-session/,
+# ADR 0005).
+#
+# Même garde qu'dans web.yml : packages/kofra-ui existe déjà sans
+# pnpm-workspace.yaml câblé, donc chaque job vérifie le prérequis avant de
+# lancer une commande pnpm qui échouerait sinon sur un espace de travail
+# incomplet.
+
+name: extension
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "extension/**"
+      - "packages/**"
+      - ".github/workflows/extension.yml"
+  pull_request:
+    paths:
+      - "extension/**"
+      - "packages/**"
+      - ".github/workflows/extension.yml"
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "20"
+  PNPM_VERSION: "9.15.0" # doit suivre le champ "packageManager" de package.json
+
+jobs:
+  install:
+    name: install
+    runs-on: ubuntu-latest
+    outputs:
+      workspace_ready: ${{ steps.guard.outputs.ready }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Vérifier le prérequis pnpm-workspace.yaml
+        id: guard
+        run: |
+          if [ -f pnpm-workspace.yaml ] && [ -d extension ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::extension/ ou pnpm-workspace.yaml absent — CI extension inactive (EP-02.03 pas encore fait, extension pas encore démarrée). Ce n'est pas un échec."
+          fi
+
+      - name: Setup pnpm
+        if: steps.guard.outputs.ready == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node ${{ env.NODE_VERSION }}
+        if: steps.guard.outputs.ready == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: pnpm install --frozen-lockfile
+        if: steps.guard.outputs.ready == 'true'
+        run: pnpm install --frozen-lockfile
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    needs: install
+    if: needs.install.outputs.workspace_ready == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: Lint (extension + packages dépendants)
+        run: pnpm --filter "./extension" --filter "./packages/**" lint
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    needs: install
+    if: needs.install.outputs.workspace_ready == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: TypeScript strict (tsc --noEmit)
+        run: pnpm --filter "./extension" --filter "./packages/**" typecheck
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    needs: install
+    if: needs.install.outputs.workspace_ready == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: Tests
+        run: pnpm --filter "./extension" --filter "./packages/**" test

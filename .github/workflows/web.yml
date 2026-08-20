@@ -1,0 +1,127 @@
+# CI qualité — web (EP-02.05).
+#
+# Se déclenche sur web/** (n'existe pas encore sur le disque au moment où ce
+# fichier est écrit — avant EP-08.01, le workflow restera inactif tant
+# qu'aucun commit n'y touche) et sur packages/** (dépendance partagée :
+# kofra-crypto, kofra-protocol, kofra-contracts, kofra-ui).
+#
+# packages/kofra-ui existe déjà (tokens.css, README.md) mais n'a pas encore
+# de package.json ni de pnpm-workspace.yaml racine (EP-02.03 pas encore
+# fait) : un changement dans packages/** peut donc déclencher ce workflow
+# avant que l'espace de travail pnpm ne soit réellement câblé. Chaque job
+# vérifie explicitement la présence de pnpm-workspace.yaml et s'arrête
+# proprement avec un message clair si le prérequis n'est pas encore là,
+# plutôt que d'échouer sur une commande pnpm invalide.
+
+name: web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - "packages/**"
+      - ".github/workflows/web.yml"
+  pull_request:
+    paths:
+      - "web/**"
+      - "packages/**"
+      - ".github/workflows/web.yml"
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "20"
+  PNPM_VERSION: "9.15.0" # doit suivre le champ "packageManager" de package.json
+
+jobs:
+  install:
+    name: install
+    runs-on: ubuntu-latest
+    outputs:
+      workspace_ready: ${{ steps.guard.outputs.ready }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Vérifier le prérequis pnpm-workspace.yaml
+        id: guard
+        run: |
+          if [ -f pnpm-workspace.yaml ] && [ -d web ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::web/ ou pnpm-workspace.yaml absent — CI web inactive (EP-02.03/EP-08.01 pas encore fait). Ce n'est pas un échec."
+          fi
+
+      - name: Setup pnpm
+        if: steps.guard.outputs.ready == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node ${{ env.NODE_VERSION }}
+        if: steps.guard.outputs.ready == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: pnpm install --frozen-lockfile
+        if: steps.guard.outputs.ready == 'true'
+        run: pnpm install --frozen-lockfile
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    needs: install
+    if: needs.install.outputs.workspace_ready == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: Lint (web + packages dépendants)
+        run: pnpm --filter "./web" --filter "./packages/**" lint
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    needs: install
+    if: needs.install.outputs.workspace_ready == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: TypeScript strict (tsc --noEmit)
+        run: pnpm --filter "./web" --filter "./packages/**" typecheck
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    needs: install
+    if: needs.install.outputs.workspace_ready == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: Tests (vitest)
+        run: pnpm --filter "./web" --filter "./packages/**" test

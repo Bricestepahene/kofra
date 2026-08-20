@@ -1,0 +1,29 @@
+# GitHub Dependency Review — CLAUDE.md §5 / design V1 §8 : actif sur chaque
+# PR, échoue sur toute dépendance nouvellement introduite de sévérité high
+# ou critical. Complémentaire à security.yml (qui scanne l'existant) : celui-
+# ci évalue spécifiquement le delta introduit par la PR.
+
+name: dependency-review
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    name: dependency-review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: always

@@ -1,0 +1,72 @@
+name: "Bug"
+description: "Signaler un comportement incorrect (non sécuritaire — voir le gabarit 'Revue de sécurité' pour toute préoccupation touchant à la confidentialité, l'intégrité ou l'autorisation)."
+title: "[Bug] "
+labels:
+  - "bug"
+body:
+  - type: markdown
+    attributes:
+      value: >
+        Si ce bug touche à la confidentialité d'un secret, à une autorisation
+        contournée, ou à toute autre préoccupation de sécurité, utilisez le
+        gabarit **Revue de sécurité** à la place, pas celui-ci.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Composant affecté
+      options:
+        - control-plane
+        - web
+        - extension
+        - infra
+        - docs
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Sévérité
+      description: Impact fonctionnel perçu, pas une classification de sécurité formelle.
+      options:
+        - Bloquant (fonction inutilisable / perte de données)
+        - Majeur (fonction dégradée, contournement possible)
+        - Mineur (gênant mais sans impact fonctionnel réel)
+        - Cosmétique
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Étapes de reproduction
+      description: Étapes précises et ordonnées pour reproduire le problème.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportement attendu
+    validations:
+      required: true
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: Comportement observé
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexte additionnel
+      description: Version, environnement, logs pertinents (sans secret ni ciphertext — CLAUDE.md §4).
+    validations:
+      required: false

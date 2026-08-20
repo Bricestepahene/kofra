@@ -1,0 +1,49 @@
+name: "Décision d'architecture"
+description: "Signaler un point d'architecture à trancher, susceptible de donner lieu à un ADR."
+title: "[ADR] "
+labels:
+  - "architecture"
+body:
+  - type: markdown
+    attributes:
+      value: >
+        Toute décision structurante (stack, protocole, modèle de données
+        touchant la sécurité) devient un fichier `docs/ADR/000X-*.md`
+        (design V1 §8). Cette issue sert à ouvrir la discussion avant de
+        rédiger l'ADR définitif.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problème à trancher
+      description: Quelle question d'architecture est ouverte ? Pourquoi ne peut-elle pas être tranchée par une simple décision d'implémentation ?
+    validations:
+      required: true
+
+  - type: textarea
+    id: options
+    attributes:
+      label: Options envisagées
+      description: Lister chaque option avec ses avantages/inconvénients connus, même de façon préliminaire.
+      placeholder: |
+        - Option A : ...
+        - Option B : ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact si non tranché
+      description: Que se passe-t-il si cette décision reste en suspens (blocage d'un lot, dette technique, risque de sécurité) ?
+    validations:
+      required: true
+
+  - type: input
+    id: adr-link
+    attributes:
+      label: Lien vers l'ADR à créer (une fois rédigé)
+      description: Numéro/fichier prévu sous docs/ADR/, à renseigner quand connu.
+      placeholder: "docs/ADR/000X-titre.md"
+    validations:
+      required: false

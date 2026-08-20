@@ -1,0 +1,77 @@
+name: "Revue de sécurité"
+description: "Demander une revue de sécurité ou signaler une préoccupation touchant à la confidentialité, l'intégrité ou l'autorisation — PAS pour une vulnérabilité exploitable réelle."
+title: "[Sécurité] "
+labels:
+  - "security"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ⚠️ Avant de continuer
+
+        **Ne décrivez jamais un secret réel, une clé ou une vulnérabilité
+        exploitable en détail ici** — les issues GitHub sont potentiellement
+        publiques ou visibles par toute l'équipe. Pour signaler une
+        **vulnérabilité réelle**, utilisez la procédure décrite dans
+        `docs/VULNERABILITY_DISCLOSURE.md` (ou un GitHub Security Advisory
+        privé) — pas ce formulaire.
+
+        Ce gabarit sert à demander une revue de sécurité proactive (nouvelle
+        fonctionnalité sensible, doute de conception) ou à signaler une
+        préoccupation générale sans détail exploitable.
+
+  - type: checkboxes
+    id: acknowledgement
+    attributes:
+      label: Confirmation
+      options:
+        - label: Je confirme ne décrire ici aucun secret réel, aucune clé, ni aucun détail exploitable d'une vulnérabilité.
+          required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Composant concerné
+      options:
+        - control-plane
+        - web
+        - extension
+        - infra
+        - docs
+    validations:
+      required: true
+
+  - type: dropdown
+    id: nature
+    attributes:
+      label: Nature de la préoccupation
+      options:
+        - Demande de revue proactive (nouvelle fonctionnalité sensible)
+        - Doute de conception (angle mort potentiel)
+        - Écart possible avec un ADR ou la spec V1
+        - Dépendance vulnérable (CVE) sans preuve d'exploitabilité
+        - Autre (préciser dans la description)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: sensitive-modules
+    attributes:
+      label: Modules sensibles touchés
+      description: Modules couverts par les exigences supplémentaires de docs/DEFINITION_OF_DONE.md.
+      options:
+        - label: vault
+        - label: recovery
+        - label: policy
+        - label: proof
+        - label: identity
+        - label: extension
+        - label: Aucun de ces modules
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description (sans détail exploitable)
+      description: Décrivez la préoccupation en restant au niveau du principe ou de la catégorie de risque, pas des étapes d'exploitation.
+    validations:
+      required: true

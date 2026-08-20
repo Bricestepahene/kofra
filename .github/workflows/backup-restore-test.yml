@@ -1,0 +1,43 @@
+# Test de sauvegarde/restauration — squelette à activer (EP-10.03/EP-10.08).
+#
+# Ce workflow N'EST PAS ENCORE FONCTIONNEL. L'infrastructure de sauvegarde
+# réelle (EP-10.03 : sauvegardes PostgreSQL chiffrées et testées, EP-10.08 :
+# procédure de restauration validée) n'existe pas encore. Prétendre tester
+# une restauration qui n'a rien à restaurer serait un faux vert — exactement
+# le type de risque que docs/DEFINITION_OF_DONE.md et CLAUDE.md §0
+# interdisent. Ce workflow échoue donc intentionnellement quand on le lance,
+# avec un message explicite, plutôt que de simuler un succès.
+#
+# Déclenchement : uniquement schedule (rappel hebdomadaire qu'il reste à
+# activer) et workflow_dispatch manuel — jamais sur push/PR, pour ne pas
+# polluer la CI de code avec un job qui échoue par construction.
+#
+# À faire quand EP-10.03/EP-10.08 seront livrés : remplacer le job
+# `precondition-not-met` ci-dessous par les étapes réelles (provisionner un
+# environnement de restauration isolé, restaurer la dernière sauvegarde,
+# vérifier l'intégrité des données restaurées, ex. hash de contrôle —
+# cf. la pratique déjà en place côté SynkriaOps : restauration réelle avec
+# comparaison md5, pas une simple absence d'erreur).
+
+name: backup-restore-test
+
+on:
+  schedule:
+    # Rappel hebdomadaire — échoue tant qu'EP-10.03/EP-10.08 ne sont pas livrés.
+    - cron: "0 6 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  precondition-not-met:
+    name: precondition-not-met
+    runs-on: ubuntu-latest
+    steps:
+      - name: Échec intentionnel — infra de sauvegarde pas encore déployée
+        run: |
+          echo "::error::Précondition non remplie : infra de sauvegarde pas encore déployée (voir EP-10.03 et EP-10.08 dans docs/execution/kofra-v1-backlog.yaml)."
+          echo "Ce job échoue intentionnellement — ce n'est pas un bug de CI."
+          echo "Squelette à remplacer par un test de restauration réel une fois l'infra de sauvegarde livrée."
+          exit 1

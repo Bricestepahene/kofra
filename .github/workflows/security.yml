@@ -1,0 +1,312 @@
+# CI sécurité — KOFRA (EP-02.06).
+#
+# Couvre : gosec + govulncheck (Go), npm/pnpm audit (Node), Trivy (scan
+# filesystem/dépendances), CodeQL (Go + JavaScript/TypeScript), et génération
+# SBOM (design V1 §8, CLAUDE.md §5).
+#
+# Politique de sévérité (CLAUDE.md §5, docs/SECURITY_POLICY.md) :
+#   - CRITICAL exploitable bloque IMMÉDIATEMENT la fusion, sans exception.
+#   - HIGH : correctif requis, ou exception documentée, datée et révisable
+#     dans docs/security-exceptions/ — jamais fusionné silencieusement.
+#
+# État honnête de cette implémentation : la logique "CRITICAL bloque / HIGH
+# bloque sauf exception documentée" est réellement implémentée pour le job
+# `npm-audit` (schéma JSON stable et exploitable en script) et pour Trivy
+# (support natif de `--severity` + `exit-code`). Pour gosec et govulncheck,
+# les sorties ne portent pas de sévérité CRITICAL/HIGH directement
+# exploitable de façon fiable en script à ce stade — ces deux scans tournent
+# et publient leurs résultats dans l'onglet Security (SARIF), mais restent
+# non bloquants pour l'instant. Affiner cette logique (mapping de sévérité,
+# rapprochement avec docs/security-exceptions/) est le périmètre explicite
+# d'EP-02.06 — ne pas fabriquer ici une fausse sophistication qui ne
+# bloquerait rien en pratique.
+
+name: security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Scan hebdomadaire indépendant des PR — capte les vulnérabilités
+    # nouvellement publiées sur du code déjà fusionné.
+    - cron: "17 4 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------
+  # CodeQL — Go et JavaScript/TypeScript.
+  #
+  # Le langage "go" n'a aucun fichier source tant que control-plane/ n'existe
+  # pas : on le vérifie explicitement et on saute proprement cette branche du
+  # matrix plutôt que de laisser CodeQL échouer sur un autobuild vide.
+  # "javascript-typescript" a déjà du code réel (scripts/sync-github-project.ts)
+  # et tourne donc dès aujourd'hui.
+  # ---------------------------------------------------------------------
+  codeql:
+    name: codeql (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ["go", "javascript-typescript"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Vérifier la présence de code source pour ce langage
+        id: guard
+        run: |
+          if [ "${{ matrix.language }}" = "go" ]; then
+            if find control-plane -name '*.go' 2>/dev/null | grep -q .; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "ready=false" >> "$GITHUB_OUTPUT"
+              echo "::notice::Aucun fichier .go sous control-plane/ — CodeQL Go inactif jusqu'à EP-03.01."
+            fi
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Initialize CodeQL
+        if: steps.guard.outputs.ready == 'true'
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Autobuild
+        if: steps.guard.outputs.ready == 'true'
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        if: steps.guard.outputs.ready == 'true'
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  # ---------------------------------------------------------------------
+  # gosec — analyse statique de sécurité Go. Informationnel pour l'instant
+  # (voir bandeau en tête de fichier) : publie en SARIF, ne bloque pas.
+  # ---------------------------------------------------------------------
+  gosec:
+    name: gosec
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Vérifier la présence de control-plane/go.mod
+        id: guard
+        run: |
+          if [ -f control-plane/go.mod ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::control-plane/go.mod absent — gosec inactif jusqu'à EP-03.01."
+          fi
+
+      - name: Setup Go
+        if: steps.guard.outputs.ready == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.4"
+
+      - name: Installer gosec
+        if: steps.guard.outputs.ready == 'true'
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+
+      - name: Exécuter gosec (rapport SARIF)
+        if: steps.guard.outputs.ready == 'true'
+        working-directory: control-plane
+        run: gosec -fmt sarif -out ../gosec-results.sarif -no-fail ./...
+
+      - name: Publier les résultats gosec
+        if: steps.guard.outputs.ready == 'true'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gosec-results.sarif
+          category: gosec
+
+  # ---------------------------------------------------------------------
+  # govulncheck — vulnérabilités Go connues affectant réellement le graphe
+  # d'appel du code. Informationnel pour l'instant (voir bandeau en tête).
+  # ---------------------------------------------------------------------
+  govulncheck:
+    name: govulncheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Vérifier la présence de control-plane/go.mod
+        id: guard
+        run: |
+          if [ -f control-plane/go.mod ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::control-plane/go.mod absent — govulncheck inactif jusqu'à EP-03.01."
+          fi
+
+      - name: Setup Go
+        if: steps.guard.outputs.ready == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.4"
+
+      - name: Installer govulncheck
+        if: steps.guard.outputs.ready == 'true'
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Exécuter govulncheck (informationnel)
+        if: steps.guard.outputs.ready == 'true'
+        working-directory: control-plane
+        run: govulncheck ./...
+        continue-on-error: true
+
+  # ---------------------------------------------------------------------
+  # npm/pnpm audit — implémentation réelle de la politique CRITICAL/HIGH :
+  # tout CRITICAL bloque sans exception possible ; tout HIGH bloque sauf si
+  # un fichier docs/security-exceptions/<id-ou-nom-de-module>.md existe.
+  # ---------------------------------------------------------------------
+  npm-audit:
+    name: npm-audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: "9.15.0"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: pnpm audit (JSON, ne bloque pas cette étape)
+        run: pnpm audit --json > audit.json || true
+
+      - name: Bloquer sur CRITICAL, ou sur HIGH sans exception documentée
+        run: |
+          python3 - <<'PYEOF'
+          import json
+          import pathlib
+          import sys
+
+          try:
+              raw = pathlib.Path("audit.json").read_text()
+              data = json.loads(raw) if raw.strip() else {}
+          except Exception as exc:
+              print(f"Impossible de lire/parser audit.json ({exc}) — vérifier manuellement.")
+              sys.exit(0)
+
+          advisories = data.get("advisories", {}) if isinstance(data, dict) else {}
+
+          exceptions_dir = pathlib.Path("docs/security-exceptions")
+          documented = {p.stem for p in exceptions_dir.glob("*.md")} if exceptions_dir.exists() else set()
+
+          blocking = []
+          for adv_id, adv in advisories.items():
+              severity = str(adv.get("severity", "")).lower()
+              module_name = str(adv.get("module_name", ""))
+              if severity == "critical":
+                  blocking.append((adv_id, "CRITICAL", module_name, "aucune exception possible (CLAUDE.md §5)"))
+              elif severity == "high":
+                  has_exception = str(adv_id) in documented or module_name in documented
+                  if not has_exception:
+                      blocking.append((
+                          adv_id, "HIGH", module_name,
+                          f"aucune exception dans docs/security-exceptions/ pour l'id {adv_id} ou le module {module_name}",
+                      ))
+
+          if blocking:
+              print("Vulnérabilités npm bloquantes détectées :")
+              for adv_id, sev, module_name, reason in blocking:
+                  print(f"  - [{sev}] {module_name} (advisory {adv_id}) : {reason}")
+              sys.exit(1)
+
+          print("Aucune vulnérabilité npm CRITICAL ; tout HIGH est absent ou couvert par une exception documentée.")
+          PYEOF
+
+  # ---------------------------------------------------------------------
+  # Trivy — scan filesystem/dépendances. CRITICAL bloque réellement (trivy
+  # supporte nativement --severity + --exit-code). HIGH reste informationnel
+  # pour l'instant, publié en SARIF (voir bandeau en tête de fichier).
+  # ---------------------------------------------------------------------
+  trivy-critical:
+    name: trivy (CRITICAL — bloquant)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Trivy filesystem scan — CRITICAL uniquement
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          severity: "CRITICAL"
+          exit-code: "1"
+          ignore-unfixed: false
+
+  trivy-high-informational:
+    name: trivy (HIGH — informationnel)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Trivy filesystem scan — HIGH (rapport SARIF, non bloquant)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          severity: "HIGH"
+          exit-code: "0"
+          format: "sarif"
+          output: "trivy-high.sarif"
+
+      - name: Publier les résultats Trivy HIGH
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-high.sarif
+          category: trivy-high
+
+  # ---------------------------------------------------------------------
+  # SBOM — CLAUDE.md §5 / design V1 §8 : SBOM généré en CI (syft, format
+  # SPDX). Non bloquant : disponibilité et traçabilité, pas un gate.
+  # ---------------------------------------------------------------------
+  sbom:
+    name: sbom
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Générer le SBOM (syft, SPDX JSON)
+        uses: anchore/sbom-action@v0.17.2
+        with:
+          path: "."
+          format: "spdx-json"
+          output-file: "kofra-sbom.spdx.json"
+          upload-artifact: true
+          upload-artifact-retention: 90

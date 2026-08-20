@@ -1,0 +1,164 @@
+# Dependabot — KOFRA
+#
+# Quatre écosystèmes couverts : control-plane (gomod), TypeScript (npm, root +
+# packages/* + web + extension), la CI elle-même (github-actions), et Docker
+# (infra/docker) une fois qu'il existera. CLAUDE.md §5 exige Dependabot actif
+# sur chaque composant ; ce fichier est volontairement écrit pour l'état futur
+# complet du dépôt (docs/superpowers/specs/2026-08-20-kofra-v1-design.md §3) —
+# une entrée dont le `directory` n'existe pas encore sur le disque est
+# silencieusement ignorée par Dependabot, ce n'est pas une erreur.
+#
+# Regroupement : les mises à jour patch/minor sont groupées pour limiter le
+# bruit de PR (une seule PR hebdomadaire par écosystème pour l'essentiel du
+# volume) ; les mises à jour majeures restent séparées, une PR par dépendance,
+# car elles demandent une revue humaine dédiée (breaking changes potentiels).
+
+version: 2
+
+updates:
+  # -------------------------------------------------------------------------
+  # Go — control-plane/. Le dossier n'existe pas encore sur le disque au
+  # moment où ce fichier est écrit (fondations, avant EP-03.01) : Dependabot
+  # ignorera cette entrée jusqu'à ce que go.mod existe.
+  # -------------------------------------------------------------------------
+  - package-ecosystem: "gomod"
+    directory: "/control-plane"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      go-patch-minor:
+        update-types:
+          - "patch"
+          - "minor"
+    labels:
+      - "dependencies"
+      - "control-plane"
+    commit-message:
+      prefix: "chore(control-plane)"
+
+  # -------------------------------------------------------------------------
+  # npm — racine du monorepo (tsx, js-yaml, typescript des devDependencies
+  # racine, cf. package.json).
+  # -------------------------------------------------------------------------
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      root-patch-minor:
+        update-types:
+          - "patch"
+          - "minor"
+    labels:
+      - "dependencies"
+      - "root"
+    commit-message:
+      prefix: "chore(root)"
+
+  # -------------------------------------------------------------------------
+  # npm — web/. N'existe pas encore sur le disque (avant EP-08.01) ; entrée
+  # gardée pour l'état futur, ignorée silencieusement en attendant.
+  # -------------------------------------------------------------------------
+  - package-ecosystem: "npm"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      web-patch-minor:
+        update-types:
+          - "patch"
+          - "minor"
+    labels:
+      - "dependencies"
+      - "web"
+    commit-message:
+      prefix: "chore(web)"
+
+  # -------------------------------------------------------------------------
+  # npm — extension/. N'existe pas encore sur le disque ; même logique.
+  # -------------------------------------------------------------------------
+  - package-ecosystem: "npm"
+    directory: "/extension"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      extension-patch-minor:
+        update-types:
+          - "patch"
+          - "minor"
+    labels:
+      - "dependencies"
+      - "extension"
+    commit-message:
+      prefix: "chore(extension)"
+
+  # -------------------------------------------------------------------------
+  # npm — packages/kofra-ui (seul package existant aujourd'hui). Les futurs
+  # packages (kofra-crypto, kofra-protocol, kofra-contracts) partageront ce
+  # même workspace pnpm racine une fois pnpm-workspace.yaml en place
+  # (EP-02.03) ; Dependabot npm avec un manifest à la racine du workspace
+  # couvre déjà l'ensemble des packages via le lockfile partagé, cette entrée
+  # reste néanmoins explicite pour la lisibilité de la matrice de couverture.
+  # -------------------------------------------------------------------------
+  - package-ecosystem: "npm"
+    directory: "/packages/kofra-ui"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      kofra-ui-patch-minor:
+        update-types:
+          - "patch"
+          - "minor"
+    labels:
+      - "dependencies"
+      - "packages"
+    commit-message:
+      prefix: "chore(kofra-ui)"
+
+  # -------------------------------------------------------------------------
+  # GitHub Actions — versions d'actions utilisées dans .github/workflows/.
+  # Sensible : une action tierce compromise dans un workflow avec accès aux
+  # secrets CI est un vecteur d'attaque réel (cf. EP-02.07, permissions
+  # minimales). Tenue à jour comme tout autre écosystème.
+  # -------------------------------------------------------------------------
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      actions-patch-minor:
+        update-types:
+          - "patch"
+          - "minor"
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "chore(ci)"
+
+  # -------------------------------------------------------------------------
+  # Docker — infra/docker/. N'existe pas encore (avant EP-02.04) ; entrée
+  # gardée pour l'état futur (compose.dev.yml / compose.prod.yml, images de
+  # base des Dockerfiles multi-stage non-root, design V1 §8).
+  # -------------------------------------------------------------------------
+  - package-ecosystem: "docker"
+    directory: "/infra/docker"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      docker-patch-minor:
+        update-types:
+          - "patch"
+          - "minor"
+    labels:
+      - "dependencies"
+      - "infra"
+    commit-message:
+      prefix: "chore(infra)"

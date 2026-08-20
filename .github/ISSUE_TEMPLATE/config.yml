@@ -1,0 +1,13 @@
+# Désactive le choix libre "issue vierge" pour forcer le passage par un des
+# gabarits ci-dessous — en particulier security-review.yml, dont
+# l'avertissement en premier champ ne doit jamais pouvoir être contourné en
+# ouvrant une issue blank.
+blank_issues_enabled: false
+
+contact_links:
+  - name: Vulnérabilité de sécurité réelle (non publique)
+    url: https://github.com/Bricestepahene/kofra/security/advisories/new
+    about: >-
+      Pour un secret, une clé ou une vulnérabilité exploitable réelle, ne pas
+      ouvrir d'issue GitHub classique — utiliser un GitHub Security Advisory
+      privé, ou suivre docs/VULNERABILITY_DISCLOSURE.md.

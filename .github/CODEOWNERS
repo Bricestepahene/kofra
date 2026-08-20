@@ -1,0 +1,76 @@
+# CODEOWNERS — KOFRA
+#
+# Objectif : forcer une revue humaine spécialisée sur les zones du dépôt où une
+# erreur a un impact direct sur la promesse zero-knowledge, la chaîne de preuve,
+# la conformité ou la disponibilité (CLAUDE.md §0, docs/DEFINITION_OF_DONE.md).
+# GitHub applique la règle la plus spécifique qui matche un chemin donné — les
+# entrées ci-dessous sont donc ordonnées de la plus générale à la plus précise.
+#
+# Convention d'évolution : @Bricestepahene est aujourd'hui l'unique contributeur,
+# donc l'unique owner de chaque zone. Quand une équipe ou une personne rejoint
+# le projet, remplacer le owner d'une section (ex. "@Bricestepahene" devient
+# "@Bricestepahene @nouvelle-personne" ou une équipe GitHub "@kofra/crypto") —
+# ne pas réécrire la structure du fichier, seulement la liste de owners de la
+# ligne concernée.
+
+# ---------------------------------------------------------------------------
+# Défaut : à défaut de règle plus spécifique plus bas, tout le dépôt reste sous
+# revue du owner actuel. Permet d'ajouter des équipes non-sécurité plus tard
+# (ex. @kofra/docs sur docs/) sans toucher aux sections sensibles ci-dessous.
+# ---------------------------------------------------------------------------
+*                                       @Bricestepahene
+
+# ---------------------------------------------------------------------------
+# Crypto — formats de ciphertext, hiérarchie de clés, primitives.
+# Toute erreur ici est potentiellement irréversible une fois des coffres réels
+# créés (migration de protocole = ADR + revue de sécurité indépendante,
+# CLAUDE.md §0). Inclut le stockage des enveloppes et DEK côté serveur
+# (internal/vault) et la génération de preuve (internal/proof), qui dépendent
+# tous deux directement des invariants cryptographiques.
+# ---------------------------------------------------------------------------
+/packages/kofra-crypto/                @Bricestepahene
+/packages/kofra-protocol/              @Bricestepahene
+/control-plane/internal/vault/         @Bricestepahene
+/control-plane/internal/proof/         @Bricestepahene
+
+# ---------------------------------------------------------------------------
+# Policy — évaluateur d'autorisation pur et déterministe (ADR 0004), et
+# access — mandats/délégation. Une régression ici peut accorder un accès non
+# autorisé à un secret sans qu'aucune primitive cryptographique ne soit
+# touchée : la revue crypto seule ne suffit pas à couvrir ce risque.
+# ---------------------------------------------------------------------------
+/control-plane/internal/policy/        @Bricestepahene
+/control-plane/internal/access/        @Bricestepahene
+
+# ---------------------------------------------------------------------------
+# Identity — organisations, utilisateurs, appareils, sessions, MFA. Frontière
+# d'authentification : une erreur ici peut permettre l'usurpation d'identité
+# en amont de toute vérification de policy.
+# ---------------------------------------------------------------------------
+/control-plane/internal/identity/      @Bricestepahene
+
+# ---------------------------------------------------------------------------
+# Proof & audit — internal/proof déjà couvert ci-dessus (chaîne append-only,
+# hash-chained). internal/audit est la lecture/export de cette chaîne :
+# CLAUDE.md §4 exige une séparation structurelle stricte entre écriture
+# (proof) et lecture (audit) — un changement qui les mélange est exactement
+# le type de régression qu'une revue spécialisée doit intercepter.
+# ---------------------------------------------------------------------------
+/control-plane/internal/audit/         @Bricestepahene
+
+# ---------------------------------------------------------------------------
+# Migrations — SQL immuable et ordonné (golang-migrate). Une migration mal
+# écrite est difficile ou impossible à corriger rétroactivement une fois
+# appliquée en production ; revue systématique avant fusion.
+# ---------------------------------------------------------------------------
+/control-plane/db/migrations/          @Bricestepahene
+
+# ---------------------------------------------------------------------------
+# Infrastructure — déploiement, isolation réseau, secrets d'infra, et la CI
+# elle-même. Un changement non revu dans .github/workflows/ peut affaiblir le
+# gate de sécurité (§CLAUDE.md §5) sans toucher une seule ligne de code
+# applicatif — donc soumis à la même exigence de revue que le code sensible.
+# ---------------------------------------------------------------------------
+/infra/                                @Bricestepahene
+/.github/workflows/                    @Bricestepahene
+/.github/CODEOWNERS                    @Bricestepahene

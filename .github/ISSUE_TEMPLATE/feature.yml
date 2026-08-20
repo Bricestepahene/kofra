@@ -1,0 +1,66 @@
+name: "Feature"
+description: "Proposer une nouvelle fonctionnalité ou une évolution."
+title: "[Feature] "
+labels:
+  - "enhancement"
+body:
+  - type: markdown
+    attributes:
+      value: >
+        Toute fonctionnalité touchant au protocole cryptographique, au modèle
+        d'autorisation ou à la chaîne de preuve doit passer par le cycle
+        brainstorming → spec → ADR avant tout code (CLAUDE.md §7) — cette
+        issue peut être le point de départ de ce cycle, pas une demande
+        d'implémentation directe.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problème résolu
+      description: Quel problème utilisateur ou technique cette fonctionnalité résout-elle ? Pourquoi maintenant ?
+    validations:
+      required: true
+
+  - type: input
+    id: epic-link
+    attributes:
+      label: Epic du backlog (si applicable)
+      description: >-
+        Identifiant de l'epic dans docs/execution/kofra-v1-backlog.yaml
+        (ex. EP-05.03), s'il en existe déjà un.
+      placeholder: "EP-XX.YY"
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Critères d'acceptation
+      description: Liste vérifiable de ce qui doit être vrai pour considérer cette fonctionnalité comme terminée.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Composant principal concerné
+      options:
+        - control-plane
+        - web
+        - extension
+        - packages (kofra-crypto / kofra-protocol / kofra-contracts / kofra-ui)
+        - infra
+        - docs
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: crypto-impact
+    attributes:
+      label: Impact protocole
+      options:
+        - label: Cette fonctionnalité touche au protocole cryptographique, au modèle d'autorisation ou à la chaîne de preuve (nécessite ADR — CLAUDE.md §7).
+          required: false

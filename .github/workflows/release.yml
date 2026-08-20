@@ -1,0 +1,47 @@
+# Release — se déclenche sur un tag vX.Y.Z.
+#
+# État honnête : P10 (déploiement) n'existe pas encore. Ce workflow NE
+# déploie RIEN — il ne fait que publier une GitHub Release avec des notes
+# générées automatiquement à partir des PR fusionnées depuis le tag
+# précédent. Aucun artefact de build n'est publié, aucune infrastructure
+# n'est mise à jour. Un futur job de déploiement réel (build d'images
+# Docker, publication, migration) sera ajouté quand P10/EP-10.xx
+# implémentera l'infra de déploiement — ne pas interpréter la présence de ce
+# fichier comme une preuve qu'un déploiement automatisé existe.
+#
+# Il n'existe pas encore de CHANGELOG.md versionné dans ce dépôt : plutôt que
+# d'inventer une vérification de cohérence contre un fichier qui n'existe
+# pas, ce workflow s'appuie sur `generate_release_notes: true` (notes
+# générées par GitHub à partir des PR). Si un CHANGELOG.md est introduit plus
+# tard, ce workflow devra être complété par une étape de validation.
+
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  github-release:
+    name: github-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Créer la GitHub Release (notes auto-générées)
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          # Tag préfixé "v" => release non-prérelease par défaut ; ajuster ici
+          # si une convention de pré-release (ex. vX.Y.Z-rc1) est introduite.
+          draft: false
+          prerelease: false
