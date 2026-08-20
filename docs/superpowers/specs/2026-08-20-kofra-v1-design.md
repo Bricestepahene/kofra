@@ -97,7 +97,7 @@ kofra/
 ├── docs/
 │   ├── MANIFESTO.md
 │   ├── VISION.md
-│   ├── THREAT_MODEL.md
+│   ├── SECURITY_THREAT_MODEL.md
 │   ├── TRUST_PROTOCOL.md
 │   ├── AUTHORIZATION_MODEL.md
 │   ├── AUDIT_AND_PROOF.md
@@ -116,7 +116,7 @@ kofra/
 
 Pas de monorepo tool unique : Go utilise son système natif (`go work`, `go build`, `go test`) ; `web/`, `extension/` et `packages/*` sont gérés par pnpm workspaces. Un `Makefile` racine orchestre les deux mondes (`make dev`, `make test`, `make lint`).
 
-`THREAT_MODEL.md`, `TRUST_PROTOCOL.md`, `AUTHORIZATION_MODEL.md` et `AUDIT_AND_PROOF.md` seront rédigés lot par lot pendant l'implémentation — ce document de design en pose les fondations mais ne les rédige pas intégralement pour éviter la dérive entre spec et réalité du code.
+`SECURITY_THREAT_MODEL.md` (rédigé le 2026-08-20, voir `docs/SECURITY_THREAT_MODEL.md`), `TRUST_PROTOCOL.md`, `AUTHORIZATION_MODEL.md` et `AUDIT_AND_PROOF.md` seront rédigés lot par lot pendant l'implémentation — ce document de design en pose les fondations mais ne les rédige pas intégralement pour éviter la dérive entre spec et réalité du code.
 
 ## 4. Architecture cryptographique et modèle de données
 

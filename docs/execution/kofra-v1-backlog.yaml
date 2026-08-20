@@ -204,7 +204,7 @@ epics:
     milestone: foundation
     size: L
     acceptance_criteria:
-      - docs/THREAT_MODEL.md écrit, couvrant au minimum les scénarios cités dans le manifeste (§"Limite de promesse").
+      - docs/SECURITY_THREAT_MODEL.md écrit (fait le 2026-08-20), couvrant au minimum les scénarios cités dans le manifeste (§"Limite de promesse").
       - Chaque contre-mesure du modèle de menace est traçable vers un epic P04-P10 qui l'implémente.
 
   - id: EP-01.04
