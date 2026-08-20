@@ -1,0 +1,103 @@
+/**
+ * KOFRA design tokens — source unique consommée par web/, l'extension et
+ * tout futur portail. Voir docs/ADR/0007-kofra-design-system-and-theming.md.
+ *
+ * Règle non négociable : aucune couleur hexadécimale codée en dur dans un
+ * composant métier — toujours var(--color-*) ou l'équivalent Tailwind
+ * @theme. Le mode clair est le mode de travail principal ; le mode sombre
+ * est une variante sémantique propre, jamais une inversion automatique.
+ */
+
+:root {
+  /* Brand */
+  --kofra-brand-950: #082D35;
+  --kofra-brand-900: #123B45;
+  --kofra-brand-800: #0E5360;
+  --kofra-brand-700: #0E6973;
+  --kofra-brand-500: #2B98A2;
+  --kofra-brand-400: #52B8C4;
+  --kofra-brand-100: #D7F1F3;
+  --kofra-brand-50:  #EFFBFC;
+
+  /* Semantic status */
+  --kofra-success-700: #10735C;
+  --kofra-success-600: #14846A;
+  --kofra-success-100: #D9F4E9;
+
+  --kofra-warning-700: #955307;
+  --kofra-warning-600: #B66A08;
+  --kofra-warning-100: #FFF0D6;
+
+  --kofra-danger-700: #A72D36;
+  --kofra-danger-600: #C53D45;
+  --kofra-danger-100: #FCE1E4;
+
+  --kofra-proof-700: #4641AE;
+  --kofra-proof-600: #5A56C9;
+  --kofra-proof-100: #E8E7FF;
+
+  /* Light semantic surfaces */
+  --color-canvas: #F6F8F8;
+  --color-surface: #FFFFFF;
+  --color-surface-subtle: #EEF3F3;
+  --color-surface-raised: #FFFFFF;
+  --color-surface-inverse: #10282E;
+
+  --color-text-primary: #15272C;
+  --color-text-secondary: #496067;
+  --color-text-tertiary: #6B7E83;
+  --color-text-inverse: #F5FAFA;
+  --color-text-link: #0E6973;
+
+  --color-border-subtle: #DCE6E7;
+  --color-border-default: #C6D5D7;
+  --color-border-strong: #8FA7AA;
+
+  --color-action-primary: #123B45;
+  --color-action-primary-hover: #082D35;
+  --color-action-primary-active: #06242B;
+  --color-action-secondary: #0E6973;
+  --color-focus-ring: #52B8C4;
+
+  --color-success: #14846A;
+  --color-success-subtle: #D9F4E9;
+  --color-warning: #B66A08;
+  --color-warning-subtle: #FFF0D6;
+  --color-danger: #C53D45;
+  --color-danger-subtle: #FCE1E4;
+  --color-proof: #5A56C9;
+  --color-proof-subtle: #E8E7FF;
+}
+
+[data-theme="dark"] {
+  --color-canvas: #0B1518;
+  --color-surface: #102126;
+  --color-surface-subtle: #152B31;
+  --color-surface-raised: #19353C;
+  --color-surface-inverse: #F5FAFA;
+
+  --color-text-primary: #EAF3F4;
+  --color-text-secondary: #B8CBD0;
+  --color-text-tertiary: #8FA8AE;
+  --color-text-inverse: #15272C;
+  --color-text-link: #78D1DA;
+
+  --color-border-subtle: #254249;
+  --color-border-default: #36565D;
+  --color-border-strong: #55767D;
+
+  --color-action-primary: #78D1DA;
+  --color-action-primary-hover: #9AE2E8;
+  --color-action-primary-active: #52B8C4;
+  --color-action-secondary: #32AA91;
+  --color-focus-ring: #A2EEF3;
+
+  --color-success: #59C9A9;
+  --color-success-subtle: #123E36;
+  --color-warning: #F1B55A;
+  --color-warning-subtle: #422D0D;
+  --color-danger: #F1878D;
+  --color-danger-subtle: #481E23;
+  --color-proof: #B8B5FF;
+  --color-proof-subtle: #302D68;
+}
