@@ -1,0 +1,1643 @@
+# KOFRA — Backlog canonique de livraison
+#
+# Source de vérité versionnée pour le GitHub Project "KOFRA — Delivery System".
+# scripts/sync-github-project.ts lit ce fichier et crée/synchronise le projet,
+# ses champs personnalisés et une issue par epic — de façon idempotente.
+#
+# Ne pas créer manuellement d'epics dans GitHub : modifier ce fichier, puis
+# relancer le script de synchronisation.
+#
+# Champs dérivés par rubrique (voir docs/execution/README.md §"Rubrique
+# d'estimation") plutôt que fixés un par un : risk, security_critical,
+# release_gate, priority, size sont un premier jet cohérent et éditable,
+# pas une vérité figée. Le champ "Estimate" (jours réels) du Project reste
+# volontairement vide au niveau epic — il n'a de sens qu'au niveau issue,
+# une fois le lot actif et découpé (règle explicite du backlog).
+
+version: 1
+
+milestones:
+  - id: foundation
+    name: Foundation
+  - id: alpha-interne
+    name: Alpha interne
+  - id: pilote-ferme
+    name: Pilote fermé
+  - id: beta-controlee
+    name: Bêta contrôlée
+  - id: v1-commerciale
+    name: V1 commerciale
+
+programs:
+  - id: P00
+    name: Gouvernance produit et entreprise
+    depends_on: []
+  - id: P01
+    name: Architecture, protocole et sécurité
+    depends_on: [P00]
+  - id: P02
+    name: Dépôt, outillage et chaîne de livraison
+    depends_on: [P01]
+  - id: P03
+    name: Plateforme Go et base PostgreSQL
+    depends_on: [P02]
+  - id: P04
+    name: Identity, appareils, MFA et sessions
+    depends_on: [P03]
+  - id: P05
+    name: Coffre cryptographique et clés
+    depends_on: [P01, P03, P04]
+  - id: P06
+    name: Mandats, politiques et révocation
+    depends_on: [P04, P05]
+  - id: P07
+    name: Preuve, audit et notifications
+    depends_on: [P03, P04, P06]
+  - id: P08
+    name: Interfaces web, portail client et PWA
+    depends_on: [P04, P05, P06]
+  - id: P09
+    name: Extension navigateur et accès délégué
+    depends_on: [P05, P06, P07]
+  - id: P10
+    name: Opérations, fiabilité et sécurité production
+    depends_on: [P02, P03, P04, P05, P06, P07, P08, P09]
+  - id: P11
+    name: Pilote cabinets, conformité, livraison et exploitation
+    depends_on: [P08, P09, P10]
+
+epics:
+  # ---------------------------------------------------------------------
+  # P00 — Gouvernance produit et entreprise
+  # ---------------------------------------------------------------------
+  - id: EP-00.01
+    program: P00
+    title: Créer l'entité, propriété intellectuelle et responsabilités KOFRA
+    description: Formaliser la structure juridique de KOFRA et la propriété du code, du manifeste et des marques associées.
+    depends_on: []
+    priority: P1
+    risk: Low
+    security_critical: false
+    release_gate: None
+    milestone: foundation
+    size: M
+    acceptance_criteria:
+      - Statut juridique de l'entité documenté et propriété du dépôt GitHub clarifiée.
+      - Responsabilités (produit, sécurité, conformité) attribuées nommément.
+
+  - id: EP-00.02
+    program: P00
+    title: Définir la gouvernance de sécurité et les rôles d'accès internes
+    description: Fixer qui a accès à quoi dans l'organisation KOFRA (dépôt, infra, secrets) et selon quel principe de moindre privilège.
+    depends_on: [EP-00.01]
+    priority: P0
+    risk: Medium
+    security_critical: true
+    release_gate: None
+    milestone: foundation
+    size: M
+    acceptance_criteria:
+      - Matrice rôles/accès documentée pour GitHub, infra et secrets de production.
+      - Principe de moindre privilège appliqué et vérifiable pour chaque rôle listé.
+
+  - id: EP-00.03
+    program: P00
+    title: Définir clients cibles, pilote et critères d'éligibilité cabinet
+    description: Spécifier le profil des cabinets d'expertise comptable CEMAC éligibles au pilote KOFRA.
+    depends_on: [EP-00.01]
+    priority: P1
+    risk: Low
+    security_critical: false
+    release_gate: None
+    milestone: foundation
+    size: S
+    acceptance_criteria:
+      - Critères d'éligibilité cabinet écrits (taille, pays, maturité numérique).
+      - Liste de cabinets candidats potentiels identifiée pour EP-11.01.
+
+  - id: EP-00.04
+    program: P00
+    title: Définir la politique de données, confidentialité et conservation
+    description: Fixer les règles de conservation, de localisation et de traitement des données KOFRA, cohérentes avec le zero-knowledge du manifeste.
+    depends_on: [EP-00.02]
+    priority: P0
+    risk: Medium
+    security_critical: true
+    release_gate: None
+    milestone: foundation
+    size: M
+    acceptance_criteria:
+      - Politique de conservation et de suppression des données écrite et référencée par EP-01.03 (modèle de menace).
+      - Durées de rétention par type de donnée (métadonnées, preuve, ciphertexts) explicites.
+
+  - id: EP-00.05
+    program: P00
+    title: Définir la politique de divulgation et de réponse aux vulnérabilités
+    description: Écrire la procédure de divulgation responsable (canal de contact, délais, coordination) pour KOFRA.
+    depends_on: [EP-00.02]
+    priority: P0
+    risk: Medium
+    security_critical: true
+    release_gate: None
+    milestone: foundation
+    size: S
+    acceptance_criteria:
+      - Politique de divulgation responsable publiée (canal de contact, SLA de première réponse).
+      - Alignée avec EP-10.10 (gestion d'incident et statut public).
+
+  - id: EP-00.06
+    program: P00
+    title: Définir les métriques produit, sécurité et exploitation
+    description: Fixer les métriques suivies pour juger la santé produit, sécurité et opérationnelle de KOFRA.
+    depends_on: [EP-00.03]
+    priority: P1
+    risk: Low
+    security_critical: false
+    release_gate: None
+    milestone: foundation
+    size: S
+    acceptance_criteria:
+      - Liste de métriques (adoption, incidents, SLO) documentée et reliée à EP-10.07 (observabilité production).
+
+  # ---------------------------------------------------------------------
+  # P01 — Architecture, protocole et sécurité
+  # ---------------------------------------------------------------------
+  - id: EP-01.01
+    program: P01
+    title: Finaliser le manifeste, la vision et les frontières produit
+    description: Verrouiller docs/MANIFESTO.md et docs/VISION.md comme référence produit, y compris la limite de promesse.
+    depends_on: [EP-00.03]
+    priority: P0
+    risk: High
+    security_critical: false
+    release_gate: None
+    milestone: foundation
+    size: S
+    acceptance_criteria:
+      - docs/MANIFESTO.md et docs/VISION.md committés et considérés comme référence stable (déjà fait le 2026-08-20).
+      - Toute divergence future entre code et manifeste déclenche une revue explicite, pas un contournement silencieux.
+
+  - id: EP-01.02
+    program: P01
+    title: Écrire le glossaire métier canonique
+    description: Fixer un vocabulaire unique (coffre, mandat, enveloppe, révocation logique/renforcée/critique...) utilisé partout dans le code et la documentation.
+    depends_on: [EP-01.01]
+    priority: P0
+    risk: Medium
+    security_critical: false
+    release_gate: None
+    milestone: foundation
+    size: S
+    acceptance_criteria:
+      - Glossaire écrit dans docs/ et référencé par EP-01.06 (modèle d'autorisation).
+      - Chaque terme du glossaire est celui utilisé dans les noms de tables/types du code, sans synonyme parasite.
+
+  - id: EP-01.03
+    program: P01
+    title: Écrire le modèle de menace V1
+    description: Modéliser les acteurs de menace (opérateur KOFRA compromis, poste client compromis, collaborateur malveillant, extension corrompue) et les contre-mesures attendues.
+    depends_on: [EP-01.01, EP-00.04]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: None
+    milestone: foundation
+    size: L
+    acceptance_criteria:
+      - docs/THREAT_MODEL.md écrit, couvrant au minimum les scénarios cités dans le manifeste (§"Limite de promesse").
+      - Chaque contre-mesure du modèle de menace est traçable vers un epic P04-P10 qui l'implémente.
+
+  - id: EP-01.04
+    program: P01
+    title: Spécifier le protocole cryptographique et les formats versionnés
+    description: Déjà largement posé dans le design V1 (§4) — formaliser la version publiable et le plan de compatibilité/migration de format.
+    depends_on: [EP-01.03]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: None
+    milestone: foundation
+    size: L
+    acceptance_criteria:
+      - docs/superpowers/specs/2026-08-20-kofra-v1-design.md §4 et ADR 0003 confirmés comme référence opérationnelle.
+      - Politique de versionnage des formats (algorithm_version, kdf_version) écrite explicitement.
+
+  - id: EP-01.05
+    program: P01
+    title: Spécifier l'identité, les sessions, appareils et MFA
+    description: Détailler le modèle de données et les invariants pour organisations, utilisateurs, appareils, sessions et MFA (au-delà du §4/§5 du design V1).
+    depends_on: [EP-01.03]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: None
+    milestone: foundation
+    size: L
+    acceptance_criteria:
+      - Spec identité détaillée écrite (durée de session, politique de verrouillage, cycle de vie appareil).
+      - Alignée avec le design V1 §5 (TOTP V1, fondations passkeys).
+
+  - id: EP-01.06
+    program: P01
+    title: Spécifier le modèle d'autorisation et de mandat
+    description: Détailler le modèle de ressources/actions/contextes et l'évaluateur de politique déterministe (au-delà du design V1 §4.4).
+    depends_on: [EP-01.02, EP-01.03]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: None
+    milestone: foundation
+    size: L
+    acceptance_criteria:
+      - Spec du modèle d'autorisation écrite, avec le glossaire EP-01.02 comme vocabulaire source.
+      - Les trois niveaux de révocation (design V1 §4.4) sont repris sans en atténuer la portée.
+
+  - id: EP-01.07
+    program: P01
+    title: Spécifier le système de preuve, événements et intégrité
+    description: Détailler le catalogue d'événements et les garanties d'intégrité de la chaîne de preuve (au-delà du design V1 §4.5).
+    depends_on: [EP-01.03]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: None
+    milestone: foundation
+    size: M
+    acceptance_criteria:
+      - Spec du système de preuve écrite, cohérente avec le hash chain déjà implémenté en LOT 1 (control-plane/internal/proof).
+      - Catalogue d'événements V1 listé nommément (référence pour EP-07.01).
+
+  - id: EP-01.08
+    program: P01
+    title: Spécifier récupération multi-administrateur et rotation
+    description: Détailler le protocole de récupération à seuil et les procédures de rotation de clés (au-delà du design V1 §4.6).
+    depends_on: [EP-01.04, EP-01.05]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: None
+    milestone: foundation
+    size: M
+    acceptance_criteria:
+      - Spec de récupération écrite, précisant la bibliothèque de partage de secret retenue et ses vecteurs de test.
+      - Procédure de rotation de clé de coffre détaillée étape par étape.
+
+  - id: EP-01.09
+    program: P01
+    title: Définir les ADR et standards de revue
+    description: Fixer le gabarit ADR (déjà utilisé pour 0001-0006) et la checklist de revue pour toute décision structurante future.
+    depends_on: [EP-01.04, EP-01.05, EP-01.06, EP-01.07, EP-01.08]
+    priority: P0
+    risk: Medium
+    security_critical: true
+    release_gate: None
+    milestone: foundation
+    size: S
+    acceptance_criteria:
+      - Gabarit ADR documenté dans docs/ADR/ (cohérent avec les 6 ADR déjà écrites).
+      - Checklist de revue de sécurité pour toute nouvelle ADR structurante.
+
+  - id: EP-01.10
+    program: P01
+    title: Définir la cible de vérification OWASP ASVS
+    description: Choisir le niveau ASVS (1, 2 ou 3) pertinent pour KOFRA et cartographier les exigences vers les epics qui les couvrent.
+    depends_on: [EP-01.03]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: None
+    milestone: foundation
+    size: M
+    acceptance_criteria:
+      - Niveau ASVS cible choisi et justifié (authentification, contrôle d'accès, communications au minimum).
+      - Table de correspondance exigence ASVS → epic(s) couvrant(s) publiée dans docs/.
+
+  # ---------------------------------------------------------------------
+  # P02 — Dépôt, outillage et chaîne de livraison
+  # ---------------------------------------------------------------------
+  - id: EP-02.01
+    program: P02
+    title: Initialiser le dépôt, conventions et protections Git
+    description: Déjà largement fait (repo créé, CLAUDE.md, structure) — formaliser les protections de branche et les règles de contribution.
+    depends_on: [EP-01.09]
+    priority: P0
+    risk: Medium
+    security_critical: false
+    release_gate: None
+    milestone: foundation
+    size: S
+    acceptance_criteria:
+      - Protection de la branche main activée (revue requise, statuts CI requis une fois EP-02.05/06 en place).
+      - CONTRIBUTING.md écrit si le projet accueille d'autres contributeurs.
+
+  - id: EP-02.02
+    program: P02
+    title: "Installer l'outillage Go : sqlc, migrations, River, lint, tests"
+    description: Compléter l'outillage Go au-delà du LOT 1 (golangci-lint, golang-migrate, sqlc, River réellement installés et configurés).
+    depends_on: [EP-02.01]
+    priority: P0
+    risk: Medium
+    security_critical: false
+    release_gate: None
+    milestone: foundation
+    size: M
+    acceptance_criteria:
+      - golangci-lint, gofumpt, sqlc et golang-migrate exécutables via make lint/sqlc-generate/migrate-*.
+      - River intégré et testé avec un job trivial de bout en bout.
+
+  - id: EP-02.03
+    program: P02
+    title: Initialiser les workspaces TypeScript et packages partagés
+    description: Déjà fait pour kofra-protocol/kofra-crypto (LOT 1) — étendre aux futurs packages (kofra-contracts, kofra-ui) au moment où ils démarrent.
+    depends_on: [EP-02.01]
+    priority: P0
+    risk: Low
+    security_critical: false
+    release_gate: None
+    milestone: foundation
+    size: S
+    acceptance_criteria:
+      - pnpm-workspace.yaml et tsconfig.base.json couvrent tous les packages actifs sans divergence de configuration.
+
+  - id: EP-02.04
+    program: P02
+    title: Configurer Docker local, environnement de développement et Makefile
+    description: Ajouter compose.dev.yml (PostgreSQL local) et compléter les cibles Makefile qui restaient des stubs après le LOT 1.
+    depends_on: [EP-02.02, EP-02.03]
+    priority: P0
+    risk: Medium
+    security_critical: false
+    release_gate: None
+    milestone: foundation
+    size: M
+    acceptance_criteria:
+      - make docker-up démarre un PostgreSQL local utilisable par les migrations.
+      - Un nouveau développeur peut lancer make dev après un simple pnpm install + make docker-up.
+
+  - id: EP-02.05
+    program: P02
+    title: Créer CI qualité par composant
+    description: Workflows GitHub Actions control-plane.yml, web.yml, extension.yml exécutant lint/test à chaque PR.
+    depends_on: [EP-02.02, EP-02.03]
+    priority: P0
+    risk: Medium
+    security_critical: false
+    release_gate: None
+    milestone: foundation
+    size: M
+    acceptance_criteria:
+      - Chaque composant a un workflow CI qui échoue si lint ou test échoue.
+      - Les workflows ne se déclenchent que sur les chemins pertinents (pas de CI Go sur un changement web seul).
+
+  - id: EP-02.06
+    program: P02
+    title: Créer CI sécurité, SBOM, scan dépendances et politiques de blocage
+    description: security.yml avec gosec, govulncheck, Trivy, CodeQL, npm audit, Dependabot, Dependency Review, génération SBOM — sévérité CRITICAL bloquant, HIGH avec exception documentée (design V1 §8).
+    depends_on: [EP-02.05]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: None
+    milestone: foundation
+    size: L
+    acceptance_criteria:
+      - security.yml bloque la fusion sur toute vulnérabilité CRITICAL exploitable.
+      - Un HIGH sans exception documentée dans docs/security-exceptions/ bloque également la fusion.
+
+  - id: EP-02.07
+    program: P02
+    title: Configurer secrets de CI, signatures et permissions minimales
+    description: Restreindre les permissions GITHUB_TOKEN par workflow, gérer les secrets CI (aucun secret KOFRA client, uniquement des identifiants d'infra CI).
+    depends_on: [EP-02.06]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: None
+    milestone: foundation
+    size: M
+    acceptance_criteria:
+      - Chaque workflow déclare des permissions minimales explicites (pas de `permissions: write-all`).
+      - Aucun secret de production n'est accessible depuis un workflow déclenché par une PR externe.
+
+  - id: EP-02.08
+    program: P02
+    title: Définir la stratégie de branches, PR, releases et versionnement
+    description: Fixer le modèle de branches (trunk-based ou GitFlow léger), le format des PR et la politique de versionnage sémantique par composant.
+    depends_on: [EP-02.01]
+    priority: P1
+    risk: Low
+    security_critical: false
+    release_gate: None
+    milestone: foundation
+    size: S
+    acceptance_criteria:
+      - Modèle de branches documenté dans CLAUDE.md ou CONTRIBUTING.md.
+      - Politique de versionnage écrite pour control-plane, web et extension séparément.
+
+  - id: EP-02.09
+    program: P02
+    title: Créer le socle d'observabilité locale
+    description: Logs structurés et traces minimales exploitables en développement local, base pour EP-03.09 et EP-10.07.
+    depends_on: [EP-02.04]
+    priority: P1
+    risk: Low
+    security_critical: false
+    release_gate: None
+    milestone: foundation
+    size: S
+    acceptance_criteria:
+      - Logs structurés lisibles localement (format JSON ou équivalent) sans secret ni clé privée.
+
+  # ---------------------------------------------------------------------
+  # P03 — Plateforme Go et PostgreSQL
+  # ---------------------------------------------------------------------
+  - id: EP-03.01
+    program: P03
+    title: Initialiser le monolithe modulaire Go et ses frontières
+    description: Créer cmd/kofra-api, cmd/kofra-worker et les paquets internal/* vides avec leurs frontières d'import respectées (ADR 0004).
+    depends_on: [EP-02.02]
+    priority: P0
+    risk: High
+    security_critical: false
+    release_gate: Alpha
+    milestone: foundation
+    size: L
+    acceptance_criteria:
+      - cmd/kofra-api démarre et répond à un endpoint de santé minimal.
+      - Un test de dépendances (go vet ou linter dédié) empêche un accès direct inter-domaine aux tables d'un autre module.
+
+  - id: EP-03.02
+    program: P03
+    title: Construire configuration, injection de dépendances et démarrage sûr
+    description: Chargement de configuration typée, échec rapide si une variable requise manque, pas de valeur par défaut dangereuse en production.
+    depends_on: [EP-03.01]
+    priority: P0
+    risk: Medium
+    security_critical: false
+    release_gate: Alpha
+    milestone: foundation
+    size: M
+    acceptance_criteria:
+      - Le service refuse de démarrer si une variable de configuration sensible est absente, plutôt que d'utiliser un défaut silencieux.
+
+  - id: EP-03.03
+    program: P03
+    title: Créer le schéma PostgreSQL de fondation et les rôles DB
+    description: Tables du design V1 §4.3 (organizations, users, vaults, vault_key_envelopes, vault_data_keys, secrets, mandates, policies, proof_events, recovery_*) et rôles DB par principe de moindre privilège.
+    depends_on: [EP-02.04, EP-01.06]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Alpha
+    milestone: foundation
+    size: XL
+    acceptance_criteria:
+      - Schéma initial couvre toutes les tables listées au design V1 §4.3, sans colonne de contenu en clair.
+      - Rôles PostgreSQL distincts pour l'application vs les migrations, avec droits minimaux.
+
+  - id: EP-03.04
+    program: P03
+    title: Configurer RLS, contexte d'organisation et tests d'isolation
+    description: Row-Level Security par organisation sur toutes les tables multi-tenant, avec tests prouvant qu'une organisation ne peut jamais lire les données d'une autre.
+    depends_on: [EP-03.03]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Alpha
+    milestone: foundation
+    size: L
+    acceptance_criteria:
+      - RLS activée sur toutes les tables portant un organization_id.
+      - Un test d'isolation exécuté sous un rôle applicatif non-superutilisateur prouve qu'une requête hors contexte renvoie zéro ligne, pas une erreur silencieusement contournable.
+
+  - id: EP-03.05
+    program: P03
+    title: Mettre en place migrations, sqlc, transactions et repository conventions
+    description: Conventions de requêtes SQL explicites par domaine (control-plane/db/queries/), génération sqlc, et pattern de transaction partagée (ADR 0002).
+    depends_on: [EP-03.03]
+    priority: P0
+    risk: Medium
+    security_critical: false
+    release_gate: Alpha
+    milestone: foundation
+    size: M
+    acceptance_criteria:
+      - Convention "un fichier de requêtes SQL par domaine" respectée et documentée.
+      - Pattern de transaction partagée testé (mutation + événement + job dans la même transaction).
+
+  - id: EP-03.06
+    program: P03
+    title: Construire API HTTP, erreurs standardisées et corrélation
+    description: Squelette HTTP (routing, middleware, format d'erreur JSON uniforme, ID de corrélation par requête).
+    depends_on: [EP-03.02]
+    priority: P0
+    risk: Medium
+    security_critical: false
+    release_gate: Alpha
+    milestone: foundation
+    size: M
+    acceptance_criteria:
+      - Toute erreur HTTP renvoyée suit un format JSON unique et documenté, sans fuite de détail d'implémentation.
+      - Chaque requête porte un ID de corrélation propagé dans les logs.
+
+  - id: EP-03.07
+    program: P03
+    title: Écrire OpenAPI V1 et tests de contrat
+    description: control-plane/api/openapi/v1.yaml comme source de vérité (ADR 0006), avec tests de contrat qui échouent si l'implémentation diverge.
+    depends_on: [EP-01.09, EP-03.06]
+    priority: P0
+    risk: Medium
+    security_critical: false
+    release_gate: Alpha
+    milestone: foundation
+    size: M
+    acceptance_criteria:
+      - v1.yaml décrit au minimum les endpoints d'identité et de coffre nécessaires à P04-P05.
+      - Un test de contrat échoue si un endpoint diverge du schéma déclaré.
+
+  - id: EP-03.08
+    program: P03
+    title: Configurer River, workers et jobs transactionnels
+    description: cmd/kofra-worker opérationnel, avec le premier job réel (ex. expiration de session) respectant la règle "job inséré dans la même transaction que la mutation" (design V1 §4.7).
+    depends_on: [EP-03.05]
+    priority: P0
+    risk: Medium
+    security_critical: false
+    release_gate: Alpha
+    milestone: foundation
+    size: M
+    acceptance_criteria:
+      - kofra-worker traite au moins un job de bout en bout depuis une mutation réelle.
+      - Un test prouve qu'un rollback de la transaction métier annule aussi l'insertion du job.
+
+  - id: EP-03.09
+    program: P03
+    title: Construire audit technique, métriques, traces et logs sans secrets
+    description: Instrumentation Winston/OpenTelemetry-équivalent Go, avec garde-fou testé contre la fuite de secret dans les logs.
+    depends_on: [EP-03.06]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Alpha
+    milestone: foundation
+    size: M
+    acceptance_criteria:
+      - Un test automatisé vérifie qu'aucun champ marqué sensible n'apparaît dans les logs applicatifs.
+      - Métriques de base (latence, taux d'erreur) exposées pour EP-10.07.
+
+  - id: EP-03.10
+    program: P03
+    title: Définir sauvegarde, restauration et test de restauration local
+    description: Politique de sauvegarde PostgreSQL et procédure de restauration testée localement (base pour EP-10.03/10.08).
+    depends_on: [EP-03.03]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Alpha
+    milestone: foundation
+    size: M
+    acceptance_criteria:
+      - Sauvegarde locale restaurée avec succès dans un environnement propre, données vérifiées identiques.
+
+  # ---------------------------------------------------------------------
+  # P04 — Identity, appareils, MFA et sessions
+  # ---------------------------------------------------------------------
+  - id: EP-04.01
+    program: P04
+    title: Organisations, membres et invitations
+    description: CRUD organisation, invitation de membres, acceptation d'invitation, avec RLS déjà en place (EP-03.04).
+    depends_on: [EP-03.04, EP-03.07]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - Une invitation ne peut être acceptée qu'une fois et expire après un délai configuré.
+      - Aucune fuite d'existence d'organisation via les messages d'erreur d'invitation.
+
+  - id: EP-04.02
+    program: P04
+    title: Inscription et vérification e-mail
+    description: Inscription utilisateur avec vérification d'e-mail obligatoire avant toute action sensible.
+    depends_on: [EP-04.01, EP-03.08]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - Un compte non vérifié ne peut pas créer de coffre ni de mandat.
+      - Le lien de vérification expire et est à usage unique.
+
+  - id: EP-04.03
+    program: P04
+    title: Connexion, sessions et protection contre attaques courantes
+    description: Connexion par mot de passe, gestion de session, rate limiting, protection contre le credential stuffing et le bourrage de session.
+    depends_on: [EP-04.02, EP-01.05]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: L
+    acceptance_criteria:
+      - Rate limiting testé sur l'endpoint de connexion (verrouillage progressif, pas de blocage définitif silencieux).
+      - Les sessions expirent selon la politique définie en EP-01.05.
+
+  - id: EP-04.04
+    program: P04
+    title: Modèle appareils de confiance et révocation
+    description: Enregistrement d'appareil, statut de confiance, révocation individuelle, base pour la révocation logique (design V1 §4.4).
+    depends_on: [EP-04.03]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - Un appareil révoqué perd l'accès à la prochaine requête, sans attendre l'expiration de session.
+
+  - id: EP-04.05
+    program: P04
+    title: "MFA TOTP : enrôlement, validation, récupération et révocation"
+    description: Enrôlement TOTP, validation à la connexion, codes de récupération, révocation d'un facteur MFA.
+    depends_on: [EP-04.03]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - TOTP obligatoire ou fortement recommandé selon le niveau de risque du rôle (design V1 §5).
+      - Codes de récupération à usage unique, invalidés après utilisation.
+
+  - id: EP-04.06
+    program: P04
+    title: Fondations de données WebAuthn/passkeys
+    description: Modèle de données et contrats pour passkeys, sans activation UI complète en V1 (design V1 §5).
+    depends_on: [EP-04.04, EP-01.05]
+    priority: P0
+    risk: Medium
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - Tables et contrat API prêts à recevoir une credential WebAuthn, sans dépendre d'une activation UI en V1.
+
+  - id: EP-04.07
+    program: P04
+    title: Gestion des rôles organisationnels et droits administratifs
+    description: Rôles au sein d'une organisation (admin, collaborateur...) et droits associés, base pour EP-06.01.
+    depends_on: [EP-04.01, EP-01.06]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - Un utilisateur non-admin ne peut pas s'auto-promouvoir administrateur via l'API.
+
+  - id: EP-04.08
+    program: P04
+    title: Journaliser les événements d'identité critiques
+    description: Connexion, échec de connexion, changement de MFA, révocation d'appareil écrits dans la chaîne de preuve.
+    depends_on: [EP-04.03, EP-03.09]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: S
+    acceptance_criteria:
+      - Chaque événement d'identité critique produit un événement de preuve conforme au catalogue EP-07.01.
+
+  - id: EP-04.09
+    program: P04
+    title: Tests d'intégration d'identité et de régression sécurité
+    description: Suite de tests couvrant EP-04.01 à EP-04.08 de bout en bout, y compris les scénarios d'attaque documentés en EP-01.03.
+    depends_on: [EP-04.01, EP-04.02, EP-04.03, EP-04.04, EP-04.05, EP-04.06, EP-04.07, EP-04.08]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - Chaque scénario du modèle de menace (EP-01.03) touchant l'identité a un test de régression dédié.
+
+  # ---------------------------------------------------------------------
+  # P05 — Coffre cryptographique et clés
+  # ---------------------------------------------------------------------
+  - id: EP-05.01
+    program: P05
+    title: Écrire la bibliothèque kofra-crypto et les vecteurs de test
+    description: Réalisé pour l'essentiel au LOT 1 (AEAD, Argon2id, X25519, Ed25519 avec vecteurs RFC) — compléter la couverture manquante identifiée pendant le LOT 1.
+    depends_on: [EP-01.04, EP-02.03]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: L
+    acceptance_criteria:
+      - packages/kofra-crypto couvre AEAD, KDF, X25519, Ed25519 avec vecteurs de test connus (RFC 7748, RFC 8032) verts.
+
+  - id: EP-05.02
+    program: P05
+    title: Créer les formats kofra-protocol et compatibilité de versions
+    description: Réalisé pour l'essentiel au LOT 1 (encodage canonique, enveloppe versionnée) — ajouter la politique de compatibilité ascendante entre versions de format.
+    depends_on: [EP-05.01]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - Politique de compatibilité de version d'enveloppe écrite et testée (un client V1 peut lire une enveloppe version antérieure).
+
+  - id: EP-05.03
+    program: P05
+    title: Générer, protéger et versionner les clés utilisateur
+    description: Flux d'inscription complet générant les paires X25519/Ed25519 côté client et les clés privées chiffrées par Argon2id (design V1 §4.2, ADR 0003).
+    depends_on: [EP-04.03, EP-05.01]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: L
+    acceptance_criteria:
+      - Le serveur ne reçoit jamais une clé privée en clair ni un mot de passe (vérifié par test réseau/fixture).
+      - Les clés sont générées aléatoirement, jamais dérivées du mot de passe (test de non-régression sur ADR 0003).
+
+  - id: EP-05.04
+    program: P05
+    title: Créer les tables clés, enveloppes et ciphertexts
+    description: user_public_keys, encrypted_private_key_bundles, vault_key_envelopes, vault_data_keys, secrets conformes au design V1 §4.3.
+    depends_on: [EP-03.05, EP-05.02]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - Schéma conforme au design V1 §4.3, aucune colonne ne pouvant contenir un secret en clair.
+
+  - id: EP-05.05
+    program: P05
+    title: Créer les coffres cabinet, client et équipe
+    description: CRUD des coffres avec leur granularité (cabinet, client, équipe, environnement — manifeste §"KOFRA Vault").
+    depends_on: [EP-04.07, EP-05.04]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - Un coffre est toujours créé avec une Vault Key propre (jamais partagée entre coffres).
+
+  - id: EP-05.06
+    program: P05
+    title: Créer les DEK par élément et chiffrement/déchiffrement local
+    description: Hiérarchie à trois niveaux VK → DEK → ciphertext appliquée à un secret réel (design V1 §4.2).
+    depends_on: [EP-05.02, EP-05.05]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: L
+    acceptance_criteria:
+      - Chaque secret possède sa propre DEK ; la rotation de VK ne nécessite pas de rechiffrer le contenu, seulement les DEK.
+
+  - id: EP-05.07
+    program: P05
+    title: Partage de clé de coffre via enveloppes par destinataire
+    description: Ajouter un destinataire à un coffre = nouvelle enveloppe de VK, jamais un rechiffrement des secrets (design V1 §4.2).
+    depends_on: [EP-05.03, EP-05.05]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - Partager un coffre avec un nouvel utilisateur n'entraîne aucune réécriture des secrets existants.
+
+  - id: EP-05.08
+    program: P05
+    title: Implémenter la récupération à seuil multi-administrateur
+    description: Groupe de récupération, partage de secret à seuil, procédure de reconstruction (design V1 §4.6, EP-01.08).
+    depends_on: [EP-01.08, EP-05.03, EP-05.07]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: L
+    acceptance_criteria:
+      - KOFRA ne détient jamais, seule, une part suffisante pour reconstruire une clé (vérifié par test).
+      - Une procédure de récupération produit un événement de preuve irréversible.
+
+  - id: EP-05.09
+    program: P05
+    title: Rotation de clés de coffre et migration des éléments chiffrés
+    description: Rotation renforcée (design V1 §4.4 niveau "renforcée") — nouvelle VK, ré-enveloppement des DEK.
+    depends_on: [EP-05.06, EP-05.07, EP-05.08]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: L
+    acceptance_criteria:
+      - Après rotation, un détenteur révoqué ne peut plus déchiffrer les nouvelles versions des secrets.
+
+  - id: EP-05.10
+    program: P05
+    title: Tests de sécurité crypto, compatibilité et perte contrôlée
+    description: Suite de tests couvrant EP-05.01 à EP-05.09, y compris des scénarios de perte de clé et de tentative de déchiffrement non autorisé.
+    depends_on: [EP-05.01, EP-05.02, EP-05.03, EP-05.04, EP-05.05, EP-05.06, EP-05.07, EP-05.08, EP-05.09]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: L
+    acceptance_criteria:
+      - Chaque garantie cryptographique du design V1 §4 a un test qui échouerait si la garantie était violée.
+
+  # ---------------------------------------------------------------------
+  # P06 — Mandats, politiques et révocation
+  # ---------------------------------------------------------------------
+  - id: EP-06.01
+    program: P06
+    title: Implémenter le modèle de ressources, actions et contextes
+    description: Types de ressources (coffre, secret, portail) et actions (lire, utiliser, exporter) formalisés en code (EP-01.06).
+    depends_on: [EP-01.06, EP-03.05]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - Le modèle de ressources/actions du code correspond exactement à la spec EP-01.06, sans action non spécifiée.
+
+  - id: EP-06.02
+    program: P06
+    title: Construire le moteur de politiques déterministe
+    description: internal/policy — évaluateur pur, séparé d'internal/access (ADR 0004).
+    depends_on: [EP-06.01]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: L
+    acceptance_criteria:
+      - L'évaluateur de politique est une fonction pure testée par cas, sans accès direct à la base de données.
+
+  - id: EP-06.03
+    program: P06
+    title: "Mandats : demande, approbation, activation, expiration"
+    description: Cycle de vie complet d'un mandat (manifeste §"KOFRA Access").
+    depends_on: [EP-04.07, EP-05.07, EP-06.02]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: L
+    acceptance_criteria:
+      - Un mandat expiré ne peut plus être utilisé, y compris si une requête est déjà en vol.
+
+  - id: EP-06.04
+    program: P06
+    title: Définir les appareils, plages temporelles et étapes MFA dans les politiques
+    description: Restrictions de politique par appareil de confiance, durée et niveau de validation MFA.
+    depends_on: [EP-04.04, EP-04.05, EP-06.02]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - Une politique peut exiger un appareil de confiance et/ou une validation MFA supplémentaire avant usage.
+
+  - id: EP-06.05
+    program: P06
+    title: Révocation logique et invalidation de sessions
+    description: Premier niveau de révocation (design V1 §4.4) — suppression d'enveloppe et blocage de session/appareil.
+    depends_on: [EP-06.03, EP-04.04]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - La révocation logique bloque l'accès futur immédiatement, avec un message produit qui ne prétend pas plus que ce niveau garantit.
+
+  - id: EP-06.06
+    program: P06
+    title: "Révocation renforcée : rotation/ré-enveloppement cryptographique"
+    description: Deuxième niveau de révocation, s'appuyant sur EP-05.09.
+    depends_on: [EP-05.09, EP-06.05]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - Déclencher une révocation renforcée exécute effectivement une rotation de VK, pas seulement une invalidation d'enveloppe.
+
+  - id: EP-06.07
+    program: P06
+    title: "Révocation critique : workflow de rotation du secret externe"
+    description: Troisième niveau — inciter/guider la rotation du secret sur le portail tiers lui-même (design V1 §4.4).
+    depends_on: [EP-06.06]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - Le produit distingue clairement la révocation critique des deux niveaux précédents dans l'UI et l'API, sans sur-promettre.
+
+  - id: EP-06.08
+    program: P06
+    title: Tests exhaustifs de politiques, mandats et révocations
+    description: Suite de tests couvrant EP-06.01 à EP-06.07, y compris des cas limites de politique contradictoire.
+    depends_on: [EP-06.01, EP-06.02, EP-06.03, EP-06.04, EP-06.05, EP-06.06, EP-06.07]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: L
+    acceptance_criteria:
+      - Chaque niveau de révocation a un test qui échouerait si sa garantie réelle était affaiblie.
+
+  # ---------------------------------------------------------------------
+  # P07 — Preuve, audit et notifications
+  # ---------------------------------------------------------------------
+  - id: EP-07.01
+    program: P07
+    title: Définir le catalogue d'événements de preuve V1
+    description: Liste exhaustive des types d'événements (manifeste §"KOFRA Proof"), base pour EP-04.08, EP-06.*, EP-09.07.
+    depends_on: [EP-01.07]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: S
+    acceptance_criteria:
+      - Catalogue d'événements V1 publié dans docs/AUDIT_AND_PROOF.md, repris tel quel par le code (pas de type d'événement ad hoc).
+
+  - id: EP-07.02
+    program: P07
+    title: Implémenter écriture append-only et numéro de séquence
+    description: internal/proof — persistance des événements avec séquence stricte par organisation (au-delà du LOT 1, qui ne couvrait que le calcul de hash).
+    depends_on: [EP-03.05, EP-07.01]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - Aucune opération SQL de UPDATE ou DELETE n'existe sur la table proof_events.
+      - Le numéro de séquence est garanti strictement croissant sous accès concurrent (test de concurrence).
+
+  - id: EP-07.03
+    program: P07
+    title: Implémenter hash chain par organisation/coffre
+    description: Persister la chaîne de hash déjà calculée au LOT 1 (control-plane/internal/proof/hashchain.go) et la relier à la séquence réelle en base.
+    depends_on: [EP-07.02]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - Chaque événement stocké référence le hash de l'événement précédent réellement persisté, pas une valeur recalculée à la volée de façon incohérente.
+
+  - id: EP-07.04
+    program: P07
+    title: Signer les consentements et actions de haute importance
+    description: Utiliser la vérification Ed25519 du LOT 1 pour les événements de consentement/approbation réels (mandats, révocations).
+    depends_on: [EP-05.03, EP-07.03]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - Un événement de consentement sans signature valide est rejeté par le control plane.
+
+  - id: EP-07.05
+    program: P07
+    title: Construire vérification de preuve et export auditable
+    description: Endpoint/outil vérifiant l'intégrité complète d'une chaîne de preuve et export dans un format exploitable (manifeste §"KOFRA Proof").
+    depends_on: [EP-07.03, EP-07.04]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - Un export de preuve peut être vérifié indépendamment du control plane (recalcul de la chaîne à partir de l'export seul).
+
+  - id: EP-07.06
+    program: P07
+    title: Créer les modèles de notification sécurité
+    description: Gabarits de notification (connexion, demande de mandat, activité inhabituelle) sans secret dans le contenu.
+    depends_on: [EP-03.08, EP-04.08, EP-07.01]
+    priority: P1
+    risk: Medium
+    security_critical: false
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: S
+    acceptance_criteria:
+      - Aucun gabarit de notification n'inclut de secret, de clé ou de mot de passe, même partiellement.
+
+  - id: EP-07.07
+    program: P07
+    title: "Implémenter alertes connexion, mandat et usage sensible"
+    description: Déclenchement effectif des notifications via River (design V1 §4.7) pour les événements du catalogue EP-07.01.
+    depends_on: [EP-06.03, EP-07.06]
+    priority: P0
+    risk: Medium
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - Chaque alerte critique du catalogue déclenche effectivement un job River dans la même transaction que l'événement source.
+
+  - id: EP-07.08
+    program: P07
+    title: Tester intégrité, ordre et résistance à la falsification
+    description: Suite de tests couvrant EP-07.02 à EP-07.05, y compris des tentatives de falsification de la chaîne.
+    depends_on: [EP-07.02, EP-07.03, EP-07.04, EP-07.05]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: M
+    acceptance_criteria:
+      - Un test prouve qu'une modification manuelle d'un événement passé invalide la vérification de chaîne.
+
+  # ---------------------------------------------------------------------
+  # P08 — Interfaces web, portail client et PWA
+  # ---------------------------------------------------------------------
+  - id: EP-08.01
+    program: P08
+    title: "Initialiser Next.js, design system, i18n et sécurité front-end"
+    description: Squelette Next.js 15.x, CSP durcie, i18n FR/EN dès le départ (cohérent avec la pratique SynkriaOps).
+    depends_on: [EP-02.03]
+    priority: P1
+    risk: Medium
+    security_critical: false
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: M
+    acceptance_criteria:
+      - CSP configurée en mode strict dès l'initialisation, pas ajoutée après coup.
+      - Structure i18n FR/EN en place avant le premier écran métier.
+
+  - id: EP-08.02
+    program: P08
+    title: "Implémenter identité, sessions, MFA et gestion appareils sur le web"
+    description: Consommer l'API d'identité (P04) depuis le web — connexion, TOTP, gestion des appareils de confiance.
+    depends_on: [EP-04.09, EP-08.01]
+    priority: P1
+    risk: High
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: L
+    acceptance_criteria:
+      - Aucun secret ni token de session n'est accessible en dehors d'un cookie httpOnly ou d'un mécanisme équivalent.
+
+  - id: EP-08.03
+    program: P08
+    title: Onboarding cabinet, équipes et rôles
+    description: Parcours de création d'un cabinet, invitation d'équipe, attribution de rôles depuis le web.
+    depends_on: [EP-04.07, EP-08.02]
+    priority: P1
+    risk: Medium
+    security_critical: false
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: M
+    acceptance_criteria:
+      - Un cabinet peut être créé et une équipe invitée sans intervention manuelle en base de données.
+
+  - id: EP-08.04
+    program: P08
+    title: "Portail client : saisie chiffrée et gestion de ses coffres"
+    description: Interface où le client saisit directement ses secrets, chiffrés côté navigateur avant tout envoi (manifeste §"KOFRA Client").
+    depends_on: [EP-05.06, EP-08.02]
+    priority: P1
+    risk: Critical
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: L
+    acceptance_criteria:
+      - Un secret saisi n'est jamais visible dans les requêtes réseau autrement que sous forme chiffrée (vérifié par inspection réseau).
+
+  - id: EP-08.05
+    program: P08
+    title: "Dashboard cabinet : coffres, clients et inventaire d'accès"
+    description: Vue d'ensemble des coffres, clients et accès pour un cabinet (manifeste §"KOFRA Vault").
+    depends_on: [EP-05.05, EP-08.03]
+    priority: P1
+    risk: Medium
+    security_critical: false
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: M
+    acceptance_criteria:
+      - Le dashboard n'affiche jamais de secret en clair, uniquement des métadonnées (type, dernière rotation).
+
+  - id: EP-08.06
+    program: P08
+    title: "Écrans de mandat : demande, approbation, durée et retrait"
+    description: Interface de délégation d'accès (manifeste §"KOFRA Access") consommant P06.
+    depends_on: [EP-06.03, EP-08.04, EP-08.05]
+    priority: P1
+    risk: High
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: L
+    acceptance_criteria:
+      - Un mandat créé depuis l'UI respecte exactement les contraintes du moteur de politique (EP-06.02), sans contournement côté client.
+
+  - id: EP-08.07
+    program: P08
+    title: "Écrans de récupération, rotation et révocation"
+    description: Interface pour les trois niveaux de révocation (P06) et la procédure de récupération à seuil (P05).
+    depends_on: [EP-05.08, EP-05.09, EP-06.07]
+    priority: P1
+    risk: High
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: L
+    acceptance_criteria:
+      - Chaque niveau de révocation est présenté avec la garantie exacte qu'il offre, sans langage ambigu.
+
+  - id: EP-08.08
+    program: P08
+    title: "Journal de preuve, alertes et export"
+    description: Interface de consultation et d'export de preuve (manifeste §"KOFRA Proof") consommant P07.
+    depends_on: [EP-07.05, EP-07.07]
+    priority: P1
+    risk: Medium
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: M
+    acceptance_criteria:
+      - L'export de preuve produit depuis l'UI est vérifiable indépendamment (mêmes garanties qu'EP-07.05).
+
+  - id: EP-08.09
+    program: P08
+    title: "PWA, accessibilité, résilience réseau et tests E2E"
+    description: Rendre le portail client installable en PWA, accessible (WCAG AA de base) et résilient à une connexion instable, avec suite E2E de bout en bout.
+    depends_on: [EP-08.01, EP-08.02, EP-08.03, EP-08.04, EP-08.05, EP-08.06, EP-08.07, EP-08.08]
+    priority: P1
+    risk: Medium
+    security_critical: false
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: L
+    acceptance_criteria:
+      - Le portail reste utilisable en conditions de bande passante faible (simulation réseau dégradé dans les tests E2E).
+
+  # ---------------------------------------------------------------------
+  # P09 — Extension navigateur et accès délégué
+  # ---------------------------------------------------------------------
+  - id: EP-09.01
+    program: P09
+    title: "Initialiser extension MV3, permissions minimales et build signé"
+    description: Squelette WebExtension Manifest V3 (ADR 0005), permissions minimales déclarées, build signé pour publication.
+    depends_on: [EP-02.03, EP-01.03]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: M
+    acceptance_criteria:
+      - manifest.json ne déclare que les permissions strictement nécessaires à la Phase 1.
+
+  - id: EP-09.02
+    program: P09
+    title: Concevoir session cryptographique éphémère et verrouillage automatique
+    description: vault-session/ — session éphémère cohérente avec le service worker non persistant de MV3 (ADR 0005).
+    depends_on: [EP-05.03, EP-09.01]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: L
+    acceptance_criteria:
+      - Un redémarrage du service worker en cours de mandat ne laisse aucun secret déchiffré résiduel en mémoire.
+
+  - id: EP-09.03
+    program: P09
+    title: "Connecter extension, identité, appareils et MFA"
+    description: L'extension s'authentifie comme un appareil de confiance au sens de P04.
+    depends_on: [EP-04.04, EP-04.05, EP-09.02]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: M
+    acceptance_criteria:
+      - L'extension apparaît comme un appareil identifiable et révocable dans EP-04.04.
+
+  - id: EP-09.04
+    program: P09
+    title: Détecter les portails et champs autorisés
+    description: content script identifiant les portails et champs de formulaire correspondant à un mandat existant.
+    depends_on: [EP-09.01, EP-06.02]
+    priority: P0
+    risk: Medium
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: M
+    acceptance_criteria:
+      - La détection ne déclenche aucune action sur un portail non couvert par un mandat actif.
+
+  - id: EP-09.05
+    program: P09
+    title: Obtenir autorisation de mandat avant usage
+    description: Vérification en temps réel qu'un mandat valide couvre l'action demandée avant tout remplissage (design V1 §6).
+    depends_on: [EP-06.03, EP-09.03]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: M
+    acceptance_criteria:
+      - Aucun remplissage n'a lieu sans vérification serveur du mandat au moment de l'usage (pas de cache de décision non revalidée).
+
+  - id: EP-09.06
+    program: P09
+    title: Déchiffrer localement et remplir sans affichage volontaire
+    description: Cœur fonctionnel de l'extension (design V1 §6, ADR 0005) — remplissage local sous mandat, aucun affichage/export/copie par défaut.
+    depends_on: [EP-05.06, EP-09.04, EP-09.05]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: L
+    acceptance_criteria:
+      - Le secret déchiffré n'est jamais accessible via l'inspecteur DOM/console du navigateur.
+      - Aucune fonction d'export, de copie ou d'affichage du secret n'existe dans le build V1.
+
+  - id: EP-09.07
+    program: P09
+    title: Émettre les événements de preuve d'usage
+    description: Chaque usage d'un mandat via l'extension produit un événement de preuve (P07).
+    depends_on: [EP-07.03, EP-09.06]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: S
+    acceptance_criteria:
+      - Un remplissage réussi ou refusé produit systématiquement un événement de preuve correspondant.
+
+  - id: EP-09.08
+    program: P09
+    title: "Gérer OTP, CAPTCHA, erreurs et refus sans contournement"
+    description: L'extension ne contourne jamais OTP, CAPTCHA ou authentification tierce (ADR 0005) — gestion explicite des cas d'échec.
+    depends_on: [EP-09.06]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: M
+    acceptance_criteria:
+      - Aucun test ni code de l'extension n'automatise la résolution d'un CAPTCHA ou d'un second facteur tiers.
+
+  - id: EP-09.09
+    program: P09
+    title: "Tester ports, navigateurs, cycle MV3, permissions et attaques de contenu"
+    description: Suite de tests couvrant EP-09.01 à EP-09.08 sur les navigateurs cibles, y compris des scénarios de contenu malveillant sur la page hôte.
+    depends_on: [EP-09.01, EP-09.02, EP-09.03, EP-09.04, EP-09.05, EP-09.06, EP-09.07, EP-09.08]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: L
+    acceptance_criteria:
+      - Tests exécutés sur au moins deux navigateurs cibles (ex. Chrome, Firefox/Edge).
+      - Un scénario de page hôte malveillante tentant d'intercepter le remplissage est couvert par un test qui échoue si l'interception réussit.
+
+  # ---------------------------------------------------------------------
+  # P10 — Opérations, fiabilité et sécurité production
+  # ---------------------------------------------------------------------
+  - id: EP-10.01
+    program: P10
+    title: Choisir fournisseur via ADR de déploiement et modèle réseau
+    description: ADR de déploiement (région, chiffrement, sauvegardes, restauration testée, accès privé, coût, SLA — design V1 §8), infra isolée de SynkriaOps.
+    depends_on: [EP-02.04]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: M
+    acceptance_criteria:
+      - ADR de déploiement écrit et validé avant toute commande d'infrastructure réelle.
+
+  - id: EP-10.02
+    program: P10
+    title: Provisionner environnement dev, staging et production isolés
+    description: Trois environnements isolés, cohérents avec l'ADR EP-10.01.
+    depends_on: [EP-10.01]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: L
+    acceptance_criteria:
+      - Aucun accès réseau direct entre l'infra KOFRA et l'infra SynkriaOps.
+
+  - id: EP-10.03
+    program: P10
+    title: "Déployer PostgreSQL, stockage objet, sauvegardes et chiffrement"
+    description: Base de production avec chiffrement au repos, sauvegardes automatisées (au-delà du test local EP-03.10).
+    depends_on: [EP-10.02]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: L
+    acceptance_criteria:
+      - Chiffrement au repos activé et vérifié.
+      - Sauvegarde de production restaurée avec succès au moins une fois avant le pilote.
+
+  - id: EP-10.04
+    program: P10
+    title: Déployer control plane, worker et migrations sécurisées
+    description: Déploiement de kofra-api et kofra-worker en production, migrations appliquées sans fenêtre d'incohérence.
+    depends_on: [EP-03.10, EP-10.02]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: L
+    acceptance_criteria:
+      - Une migration peut être appliquée en production sans interruption de service constatée.
+
+  - id: EP-10.05
+    program: P10
+    title: "Déployer web, API gateway, TLS et domaines"
+    description: Exposition publique du web et de l'API avec TLS strict.
+    depends_on: [EP-08.01, EP-10.04]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: M
+    acceptance_criteria:
+      - TLS 1.2+ uniquement, aucune redirection HTTP non sécurisée persistante.
+
+  - id: EP-10.06
+    program: P10
+    title: Déployer extension, pipeline de publication et gestion de versions
+    description: Publication de l'extension sur les stores navigateurs, avec pipeline reproductible.
+    depends_on: [EP-09.09, EP-10.02]
+    priority: P0
+    risk: Medium
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: M
+    acceptance_criteria:
+      - Le build publié est reproductible à partir d'un commit donné (pas de build manuel non tracé).
+
+  - id: EP-10.07
+    program: P10
+    title: "Observabilité production, SLO, alerting et runbooks"
+    description: SLO définis, alerting configuré, runbooks pour les incidents les plus probables.
+    depends_on: [EP-03.09, EP-10.04]
+    priority: P0
+    risk: High
+    security_critical: false
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: M
+    acceptance_criteria:
+      - Au moins un runbook existe pour chaque scénario d'incident identifié dans le modèle de menace (EP-01.03).
+
+  - id: EP-10.08
+    program: P10
+    title: Tester reprise après sinistre et restauration intégrale
+    description: Exercice de disaster recovery de bout en bout sur l'environnement de production isolé.
+    depends_on: [EP-10.03, EP-10.04, EP-10.05, EP-10.06, EP-10.07]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: L
+    acceptance_criteria:
+      - Un exercice de restauration complète est exécuté et documenté, avec un temps de restauration mesuré.
+
+  - id: EP-10.09
+    program: P10
+    title: Exécuter pentest, revue de code et correction des constats
+    description: Test d'intrusion indépendant sur le protocole crypto, l'identité, l'extension et l'infra, puis remédiation.
+    depends_on: [EP-05.10, EP-06.08, EP-09.09, EP-10.05]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: XL
+    acceptance_criteria:
+      - Aucun constat CRITICAL ou HIGH ouvert au moment du pilote fermé (corrigé ou exception documentée et acceptée).
+
+  - id: EP-10.10
+    program: P10
+    title: "Préparer gestion d'incident, statut public et divulgation vulnérabilités"
+    description: Procédure d'incident opérationnelle, page de statut, cohérente avec EP-00.05.
+    depends_on: [EP-00.05, EP-10.07]
+    priority: P0
+    risk: High
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: M
+    acceptance_criteria:
+      - Une procédure d'incident testée par un exercice simulé (tabletop) avant le pilote fermé.
+
+  # ---------------------------------------------------------------------
+  # P11 — Pilote, conformité et livraison
+  # ---------------------------------------------------------------------
+  - id: EP-11.01
+    program: P11
+    title: Recruter et contractualiser les cabinets pilotes
+    description: Sélection et contractualisation des premiers cabinets pilotes selon les critères EP-00.03.
+    depends_on: [EP-00.03, EP-00.04]
+    priority: P1
+    risk: Medium
+    security_critical: false
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: M
+    acceptance_criteria:
+      - Au moins un cabinet pilote contractualisé, avec engagement de confidentialité couvrant la nature bêta du produit.
+
+  - id: EP-11.02
+    program: P11
+    title: Préparer onboarding, consentements et supports pilote
+    description: Matériel d'onboarding, formulaires de consentement, supports de formation pour le pilote.
+    depends_on: [EP-08.09]
+    priority: P1
+    risk: Medium
+    security_critical: false
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: M
+    acceptance_criteria:
+      - Consentements couvrant explicitement les limites de promesse du manifeste (§"Limite de promesse").
+
+  - id: EP-11.03
+    program: P11
+    title: Définir les portails pilotes, restrictions et procédures manuelles
+    description: Liste précise des portails externes couverts par le pilote et des cas non couverts nécessitant une procédure manuelle.
+    depends_on: [EP-09.08, EP-11.01]
+    priority: P1
+    risk: Medium
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: M
+    acceptance_criteria:
+      - Liste des portails pilotes validée par au moins un cabinet pilote avant le lancement.
+
+  - id: EP-11.04
+    program: P11
+    title: Exécuter pilote fermé et recueillir les preuves d'usage
+    description: Déploiement réel auprès des cabinets pilotes, suivi actif, collecte de retours et de preuves d'usage réel.
+    depends_on: [EP-10.09, EP-11.02, EP-11.03]
+    priority: P1
+    risk: High
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: XL
+    acceptance_criteria:
+      - Au moins un cycle complet coffre → mandat → usage → révocation exécuté par un vrai cabinet pilote, avec preuve exportée.
+
+  - id: EP-11.05
+    program: P11
+    title: Corriger sécurité, fiabilité et UX sur retours pilote
+    description: Cycle de correction basé sur les retours et incidents réels du pilote fermé.
+    depends_on: [EP-11.04]
+    priority: P1
+    risk: Medium
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: L
+    acceptance_criteria:
+      - Chaque incident de sécurité ou de fiabilité remonté pendant le pilote est corrigé ou explicitement accepté par écrit avant la bêta.
+
+  - id: EP-11.06
+    program: P11
+    title: Réaliser revue finale de sortie et go/no-go
+    description: Revue formelle croisant disaster recovery (EP-10.08), gestion d'incident (EP-10.10) et corrections pilote (EP-11.05).
+    depends_on: [EP-10.08, EP-10.10, EP-11.05]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Pilot
+    milestone: pilote-ferme
+    size: M
+    acceptance_criteria:
+      - Décision go/no-go documentée avec les critères explicitement évalués (sécurité, fiabilité, conformité).
+
+  - id: EP-11.07
+    program: P11
+    title: Lancer la bêta contrôlée
+    description: Ouverture à un groupe élargi de cabinets au-delà du pilote fermé, sous conditions.
+    depends_on: [EP-11.06]
+    priority: P0
+    risk: Medium
+    security_critical: false
+    release_gate: Beta
+    milestone: beta-controlee
+    size: M
+    acceptance_criteria:
+      - Critères d'entrée en bêta explicites (nombre de cabinets, conditions de suivi renforcé).
+
+  - id: EP-11.08
+    program: P11
+    title: Préparer support, opérations client et surveillance post-lancement
+    description: Dispositif de support et surveillance renforcée pour la période de bêta contrôlée.
+    depends_on: [EP-11.07]
+    priority: P1
+    risk: Low
+    security_critical: false
+    release_gate: Beta
+    milestone: beta-controlee
+    size: M
+    acceptance_criteria:
+      - Canal de support opérationnel avec SLA de première réponse défini pour les cabinets en bêta.
+
+  - id: EP-11.09
+    program: P11
+    title: Lancer V1 publique ou commerciale
+    description: Ouverture commerciale au-delà de la bêta contrôlée.
+    depends_on: [EP-11.08]
+    priority: P0
+    risk: Medium
+    security_critical: false
+    release_gate: Production
+    milestone: v1-commerciale
+    size: M
+    acceptance_criteria:
+      - Décision de lancement V1 documentée, référençant explicitement le go/no-go EP-11.06 et l'absence de régression depuis.
