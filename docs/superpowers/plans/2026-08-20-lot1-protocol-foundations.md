@@ -10,9 +10,16 @@
 
 **Spec:** `docs/superpowers/specs/2026-08-20-kofra-v1-design.md` (§4 Architecture cryptographique et modèle de données), `docs/ADR/0003-client-side-encryption-and-key-hierarchy.md`.
 
+> **Révision du 2026-08-20 (LOT PRÉ-0, décision D1).** Ce plan **démarre à la Task 2**.
+> Le scaffolding du monorepo, qui constituait la Task 1, appartient désormais au
+> **LOT 0 — KOFRA Engineering Foundation**. La Task 1 est conservée comme bloc de
+> prérequis vérifiables, et la numérotation des Tasks 2 à 10 est inchangée pour ne
+> pas casser leurs renvois croisés. Aucune tâche cryptographique n'a été retirée.
+> Registre complet : [`docs/DECISIONS_NEEDED.md`](../../DECISIONS_NEEDED.md).
+
 ## Global Constraints
 
-- Go version pinned exactly: `go 1.23.4` in every `go.mod` and `go.work`.
+- Go `1.23.4`, **module unique** dont la racine est `control-plane/` — **pas de `go.work`** ([ADR 0013](../../ADR/0013-single-go-module-no-go-work.md)). À noter : la directive `go` d'un `go.mod` exprime une version **minimale**, pas un verrou ; le verrouillage effectif de la toolchain est assuré par la CI.
 - No cryptographic primitive is reimplemented from scratch — only audited libraries (`@noble/curves`, `hash-wasm`) or platform-native `crypto.subtle`.
 - No secret, private key, or password ever appears in a test fixture committed to the repo in plaintext form for anything other than intentionally-public RFC test vectors (which are not real secrets).
 - Every crypto wrapper function must have at least one test that exercises a tamper/failure path (wrong key, wrong nonce, corrupted ciphertext), not just the happy path.
@@ -20,99 +27,36 @@
 
 ---
 
-### Task 1: Monorepo scaffolding (Go workspace + pnpm workspace)
+### Task 1: Scaffolding du monorepo — **DÉPLACÉE VERS LE LOT 0**
 
-**Files:**
-- Create: `go.work`
-- Create: `control-plane/go.mod`
-- Create: `package.json` (root)
-- Create: `pnpm-workspace.yaml`
-- Create: `tsconfig.base.json`
+> **Cette tâche ne fait plus partie du LOT 1.** Décision D1 du LOT PRÉ-0
+> (`docs/DECISIONS_NEEDED.md`, 2026-08-20) : le LOT 0 « KOFRA Engineering
+> Foundation » absorbe le scaffolding du dépôt polyglotte. Le LOT 1 démarre à la
+> **Task 2** et conserve l'intégralité de ses tâches cryptographiques.
+>
+> La numérotation des tâches est **volontairement inchangée** : les blocs
+> `Interfaces: Consumes / Produces` des Tasks 2 à 10 se référencent mutuellement par
+> numéro, et renuméroter casserait ces renvois sans bénéfice.
 
-**Interfaces:**
-- Produces: a working `go build ./...` from repo root via `go.work`, and a working `pnpm install` at repo root that resolves `packages/*` as workspace members. Later tasks add packages under `packages/`.
+**Prérequis fournis par le LOT 0** — vérifier que ces éléments existent et
+fonctionnent avant de démarrer la Task 2 :
 
-- [ ] **Step 1: Create the Go workspace file**
+- [ ] `control-plane/go.mod` — module Go **unique** (racine `control-plane/`), Go `1.23.4`.
+      **Pas de `go.work`** : décision supplémentaire du LOT PRÉ-0, formalisée en
+      [ADR 0013](../../ADR/0013-single-go-module-no-go-work.md).
+- [ ] `pnpm-workspace.yaml` — `packages/*` résolus comme membres du workspace.
+- [ ] `tsconfig.base.json` — configuration TypeScript stricte partagée.
+- [ ] `package.json` racine — **modifié, jamais réécrit**. Il porte déjà le script
+      `sync:github-project` et ses `devDependencies` ; un `Write` intégral détruirait
+      l'outillage de synchronisation du backlog. C'est le piège que la version
+      initiale de cette tâche contenait.
+- [ ] `go build ./...` et `pnpm install --frozen-lockfile` verts.
 
-`go.work`:
-```
-go 1.23.4
-
-use (
-	./control-plane
-)
-```
-
-- [ ] **Step 2: Create the Go module for the control plane**
-
-`control-plane/go.mod`:
-```
-module github.com/Bricestepahene/kofra/control-plane
-
-go 1.23.4
-```
-
-- [ ] **Step 3: Verify the Go workspace resolves**
-
-Run: `go work sync && go version`
-Expected: no errors; prints the installed Go version (must be `>= 1.23.4`; if the local toolchain is older, install Go 1.23.4 before continuing).
-
-- [ ] **Step 4: Create the root package.json**
-
-`package.json`:
-```json
-{
-  "name": "@kofra/root",
-  "version": "0.0.1",
-  "description": "KOFRA — infrastructure de confiance numérique (monorepo pnpm workspaces + control plane Go)",
-  "private": true,
-  "license": "UNLICENSED",
-  "packageManager": "pnpm@9.15.0",
-  "engines": {
-    "node": ">=20"
-  }
-}
-```
-
-- [ ] **Step 5: Create the pnpm workspace file**
-
-`pnpm-workspace.yaml`:
-```yaml
-packages:
-  - "packages/*"
-```
-
-- [ ] **Step 6: Create the shared base tsconfig**
-
-`tsconfig.base.json`:
-```json
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["ES2022", "DOM"],
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-    "declaration": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
-  }
-}
-```
-
-- [ ] **Step 7: Verify pnpm resolves the (still-empty) workspace**
-
-Run: `pnpm install`
-Expected: completes with no errors (no packages yet, that's fine).
-
-- [ ] **Step 8: Commit**
+**Validation avant de passer à la Task 2 :**
 
 ```bash
-git add go.work control-plane/go.mod package.json pnpm-workspace.yaml tsconfig.base.json pnpm-lock.yaml
-git commit -m "chore: scaffold Go workspace and pnpm workspace"
+cd control-plane && go build ./...
+cd .. && pnpm install --frozen-lockfile && pnpm -r list --depth -1
 ```
 
 ---
@@ -1544,7 +1488,14 @@ git commit -m "feat(proof): add hash chain, Ed25519 verification, and cross-lang
 - Modify: `Makefile`
 
 **Interfaces:**
-- Produces: working `make test` and `make lint` entry points for everything built in Tasks 1-9 (control-plane `internal/proof` package and the three TS packages). `make dev`, `make dev-api`, `make dev-web`, `migrate-*`, `sqlc-generate`, `api-codegen`, `docker-*` remain stubs — nothing in this lot builds an HTTP server, database, web app, or extension, so those targets are untouched.
+- Produces: working `make test` and `make lint` entry points covering everything built in Tasks 2-9 (control-plane `internal/proof` package and the three TS packages).
+
+> **Révision LOT PRÉ-0 (D1).** Le LOT 0 aura déjà rendu opérationnels `make dev-api`,
+> `migrate-*`, `docker-*` et `api-codegen`, et aura épinglé la version de
+> `golangci-lint` (D14). Cette tâche ne doit donc **pas** les remettre à l'état de
+> stub : lire le `Makefile` réel avant de le modifier, et n'y ajouter que la
+> couverture des paquets cryptographiques de ce lot. `sqlc-generate` reste un stub —
+> `sqlc` est différé au Lot A (D6).
 
 - [ ] **Step 1: Update the `test` target to cover what exists**
 

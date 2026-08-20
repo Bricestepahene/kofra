@@ -22,16 +22,19 @@ Ne jamais changer sans nouvel ADR (`docs/ADR/`).
 
 | Couche | Stack |
 |---|---|
-| Control plane | Go `1.23.x` (version exacte dans `go.mod`), monolithe modulaire (`control-plane/`) |
-| Accès données | `sqlc` (SQL explicite versionné → Go typé), pas d'ORM |
-| Migrations | `golang-migrate` |
-| DB | PostgreSQL, source transactionnelle unique |
+| Control plane | Go `1.23.4`, **module unique** `control-plane/`, monolithe modulaire, **pas de `go.work`** (ADR 0013). La directive `go` de `go.mod` est une version minimale, pas un verrou : la toolchain se verrouille en CI |
+| Driver DB | `pgx/v5` **natif**, pas `database/sql` (ADR 0008) |
+| Accès données | `sqlc` (SQL explicite versionné → Go typé), pas d'ORM. **Différé au Lot A** (D6) : aucune table artificielle n'est créée au LOT 0 pour l'alimenter |
+| Migrations | `golang-migrate` pour l'applicatif ; **River gère les siennes**, jamais recopiées (ADR 0010). Point d'entrée unique, séquence : applicatif → River → vérification |
+| DB | PostgreSQL **16.9**, épinglé par tag et digest, source transactionnelle unique (ADR 0009) |
+| Rôles DB | `kofra_owner` (init infra), `kofra_migrator` (DDL), `kofra_app` (runtime). **`kofra_app` n'est jamais superutilisateur ni `BYPASSRLS`** (ADR 0009) |
+| Observabilité | `log/slog` JSON + fondation OpenTelemetry, **aucun exporteur SaaS distant** (ADR 0012) |
 | Queue de jobs | River (PostgreSQL-native). Pas de Redis en V1 (ADR 0002) |
 | Auth serveur | Sessions/appareils gérés par `internal/identity`, MFA TOTP en V1, fondations WebAuthn/passkeys posées |
 | Crypto | Côté client exclusivement — Web Crypto API, wrapper unique `packages/kofra-crypto`, jamais de primitive réimplémentée |
 | Web | Next.js `15.x` verrouillé dans `pnpm-lock.yaml`, TypeScript strict |
 | Extension | WebExtension Manifest V3, TypeScript strict (`extension/`) |
-| Contrat API | OpenAPI v1 (`control-plane/api/openapi/v1.yaml`) → codegen vers `packages/kofra-contracts` (Zod) |
+| Contrat API | OpenAPI v1 (`control-plane/api/openapi/v1.yaml`), **spec-first** via `oapi-codegen` → types Go + client TS `packages/kofra-contracts` (ADR 0011). Un handler sans entrée au contrat est un motif de rejet |
 | CI | GitHub Actions par composant + `security.yml` (gosec, govulncheck, Trivy, CodeQL, npm audit, Dependabot, Dependency Review, SBOM) |
 | Infra | Docker multi-stage non-root, infra isolée de SynkriaOps, fournisseur choisi par ADR de déploiement avant prod |
 
@@ -109,6 +112,11 @@ Ces règles sont extraites de `docs/superpowers/specs/2026-08-20-kofra-v1-design
 - **CRITICAL exploitable** détecté par le scan de sécurité bloque immédiatement la fusion.
 - **HIGH** : corriger, ou documenter une exception datée et révisable dans `docs/security-exceptions/`. Ne jamais bloquer mécaniquement sans discernement sur un transitif sans correctif disponible, mais ne jamais fusionner un HIGH silencieux sans exception écrite non plus.
 - Dependabot et GitHub Dependency Review actifs sur chaque PR. SBOM généré en CI.
+- `golangci-lint` et son ruleset sont épinglés **par version exacte** — `latest` est proscrit (D14).
+
+**Portée réelle du gate — à ne pas confondre avec la politique.** Depuis le 2026-08-20 (dépôt passé public), `main` est **réellement protégée** : push direct bloqué, `enforce_admins` actif, historique linéaire, force-push et suppression interdits, secret scanning et push protection actifs. **Mais `required_status_checks` est vide** : un job CI rouge **n'empêche encore aucune fusion**. Le vert doit donc être constaté manuellement avant de fusionner. Écart documenté dans `docs/security-exceptions/2026-08-20-statuts-ci-non-requis.md` — ne jamais écrire qu'un statut CI est bloquant tant que ce fichier existe.
+
+**Conséquence pratique pour tout travail sur ce dépôt** : `git push` sur `main` échoue désormais. Passer par une branche courte et une Pull Request, systématiquement.
 
 ## 6. Pièges connus
 
@@ -117,4 +125,5 @@ _Section à enrichir au fil de l'implémentation — ne pas préremplir avec des
 ## 7. Processus
 
 - Toute nouvelle fonctionnalité touchant au protocole cryptographique, au modèle d'autorisation ou à la chaîne de preuve passe par le cycle `superpowers:brainstorming` → spec → ADR si structurant → `superpowers:writing-plans`, avant tout code.
+- **`docs/DECISIONS_NEEDED.md` est le registre des décisions.** Avant de démarrer un lot, vérifier qu'aucune décision `OPEN` ne le bloque. Une décision `OPEN` se tranche explicitement — jamais par une hypothèse implicite posée dans le code.
 - Les Phases 2 à 4 du manifeste (`docs/VISION.md`) ne sont pas conçues en détail tant que la Phase 1 n'a pas de socle implémenté et testé.

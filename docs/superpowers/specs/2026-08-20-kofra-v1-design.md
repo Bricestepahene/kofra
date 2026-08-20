@@ -14,18 +14,24 @@ Ce document fige les décisions structurantes. Il ne découpe pas l'implémentat
 
 | Décision | Choix | Ne pas changer sans |
 |---|---|---|
-| Langage du control plane | Go `1.23.x` (version exacte figée dans `go.mod`) | ADR |
+| Langage du control plane | Go `1.23.4`, **module unique** `control-plane/`, pas de `go.work` (ADR 0013). La directive `go` de `go.mod` est une version **minimale**, pas un verrou : la toolchain est verrouillée en CI | ADR |
 | Interfaces clientes | TypeScript strict (web, extension, futur mobile) | ADR |
-| Base transactionnelle | PostgreSQL, source de vérité unique | ADR |
+| Base transactionnelle | PostgreSQL **16.9**, épinglé par tag et digest, source de vérité unique (ADR 0009) | ADR |
+| Driver PostgreSQL | `pgx/v5` natif, pas `database/sql` (ADR 0008) | ADR |
+| Rôles de base de données | `kofra_owner` (init infra), `kofra_migrator` (DDL), `kofra_app` (runtime, jamais superutilisateur ni `BYPASSRLS`) — ADR 0009 | ADR |
 | Queue de jobs | River (PostgreSQL-native), pas de Redis en V1 | Preuve d'un besoin réel : cache haute charge, rate limiting distribué à très haut débit, pub/sub temps réel massif, ou pression mesurée sur PostgreSQL |
-| Accès SQL | `sqlc` (SQL explicite → Go typé), pas d'ORM | ADR |
-| Migrations | `golang-migrate`, SQL versionné immuable | — |
+| Accès SQL | `sqlc` (SQL explicite → Go typé), pas d'ORM. **Introduction différée au Lot A**, quand une première table multi-tenant et une requête métier réelle existeront (D6) | ADR |
+| Migrations | `golang-migrate` pour l'applicatif ; **River gère les siennes** (ADR 0010). Séquence unique : applicatif → River → vérification | ADR |
+| Observabilité | `log/slog` JSON + fondation OpenTelemetry, **aucun exporteur SaaS distant** (ADR 0012) | ADR |
 | Chiffrement | Côté client exclusivement (Web Crypto API), zero-knowledge serveur | Revue de sécurité indépendante |
 | Web | Next.js `15.x`, verrouillé dans `pnpm-lock.yaml`, mise à jour trimestrielle ou semestrielle | — |
 | Extension | WebExtension Manifest V3, TypeScript strict | ADR |
-| Contrat API | OpenAPI v1 versionné, codegen TS vers `kofra-contracts` | ADR |
+| Contrat API | OpenAPI v1 versionné, **spec-first** via `oapi-codegen` → types Go + client TS `kofra-contracts` (ADR 0011) | ADR |
 | Hébergement | Infra isolée de SynkriaOps dès le départ ; fournisseur choisi via un ADR de déploiement avant mise en production | ADR de déploiement (pas figé ici) |
-| Organisation GitHub | Dépôt privé `kofra` sous le compte personnel `Bricestepahene` | — |
+| Organisation GitHub | Dépôt **public** `kofra` sous le compte personnel `Bricestepahene` (depuis le 2026-08-20). Protection de `main` active, secret scanning et push protection activés ; statuts CI pas encore requis — voir `docs/security-exceptions/` | — |
+| Licence | **BUSL-1.1**, bascule automatique en MPL-2.0 le 2030-08-20 (D15). Code auditable publiquement, offre commerciale concurrente non accordée | — |
+
+Les lignes portant une référence `ADR 0008` à `ADR 0013` ont été ajoutées ou précisées lors du **LOT PRÉ-0** (2026-08-20), qui a tranché quinze décisions restées ouvertes après la rédaction initiale de ce document. Le registre complet, y compris les sujets encore ouverts, est dans [`docs/DECISIONS_NEEDED.md`](../../DECISIONS_NEEDED.md).
 
 ## 3. Structure du dépôt
 
@@ -114,7 +120,9 @@ kofra/
     └── monitoring/
 ```
 
-Pas de monorepo tool unique : Go utilise son système natif (`go work`, `go build`, `go test`) ; `web/`, `extension/` et `packages/*` sont gérés par pnpm workspaces. Un `Makefile` racine orchestre les deux mondes (`make dev`, `make test`, `make lint`).
+Pas de monorepo tool unique : Go utilise son système natif (`go build`, `go test`) sur un **module unique** dont la racine est `control-plane/` — **aucun `go.work`** (ADR 0013) ; `web/`, `extension/` et `packages/*` sont gérés par pnpm workspaces. Un `Makefile` racine orchestre les deux mondes (`make dev`, `make test`, `make lint`).
+
+`control-plane/db/sqlc.yaml` figure dans l'arborescence cible ci-dessus mais **n'est pas créé au LOT 0** : l'introduction de `sqlc` est différée au Lot A, quand une première table multi-tenant et une requête métier réelle existeront (D6, `docs/DECISIONS_NEEDED.md`). Le LOT 0 ne fabrique aucune table artificielle pour alimenter la génération.
 
 `SECURITY_THREAT_MODEL.md` (rédigé le 2026-08-20, voir `docs/SECURITY_THREAT_MODEL.md`), `TRUST_PROTOCOL.md`, `AUTHORIZATION_MODEL.md` et `AUDIT_AND_PROOF.md` seront rédigés lot par lot pendant l'implémentation — ce document de design en pose les fondations mais ne les rédige pas intégralement pour éviter la dérive entre spec et réalité du code.
 
@@ -334,14 +342,14 @@ OUT OF SCOPE — V1 (voir docs/VISION.md, Phases 2-4)
 
 | Domaine | Choix |
 |---|---|
-| Go | `1.23.x` exact dans `go.mod`, `sqlc`, `golang-migrate`, `river` |
-| Lint/format Go | `golangci-lint`, `gofumpt` |
+| Go | `1.23.4`, module unique `control-plane/`, pas de `go.work` (ADR 0013). Verrouillage de la toolchain **par la CI** — la directive `go` de `go.mod` est une version minimale, pas un verrou. Outillage : `golang-migrate`, `river`, `oapi-codegen` ; `sqlc` différé au Lot A (D6) |
+| Lint/format Go | `golangci-lint` et son ruleset épinglés **par version exacte** — `latest` proscrit (D14) ; `gofumpt` |
 | Web | Next.js `15.x` verrouillé dans `pnpm-lock.yaml`, TypeScript strict, Zod (`kofra-contracts`) |
 | Crypto client | Web Crypto API native, wrapper unique `kofra-crypto`, testé par vecteurs de test connus |
 | Extension | WebExtension Polyfill, Manifest V3, TypeScript strict |
 | Contrat API | OpenAPI v1 (`control-plane/api/openapi/v1.yaml`), codegen client TS vers `kofra-contracts` |
 | CI | GitHub Actions par composant (`control-plane.yml`, `web.yml`, `extension.yml`) + `security.yml` dédié : gosec, govulncheck, Trivy, CodeQL (Go + TypeScript), npm audit, **Dependabot**, **GitHub Dependency Review** sur chaque PR, **génération SBOM** (`syft` ou équivalent) |
-| Sévérité CI | **CRITICAL exploitable bloque immédiatement.** Pour **HIGH** : correctif requis, ou exception documentée, datée et révisable dans `docs/security-exceptions/` — ne pas bloquer mécaniquement dès le premier commit sur des transitifs sans correctif disponible |
+| Sévérité CI | **CRITICAL exploitable bloque immédiatement.** Pour **HIGH** : correctif requis, ou exception documentée, datée et révisable dans `docs/security-exceptions/` — ne pas bloquer mécaniquement dès le premier commit sur des transitifs sans correctif disponible. **Réserve** : `main` est protégée (push direct bloqué) mais aucun statut CI n'est encore *requis* pour fusionner — le gate repose sur une vérification manuelle, cf. `docs/security-exceptions/` |
 | Tests | Go : `testing` + vecteurs de test crypto fixes (jamais de crypto non testée par vecteur) ; TS : Vitest |
 | Infra | Docker multi-stage non-root, `compose.dev.yml` / `compose.prod.yml`, infra isolée de SynkriaOps ; fournisseur choisi via ADR de déploiement avant mise en production (région, chiffrement, sauvegardes, restauration testée, accès privé, coût, SLA — critères non négociables, fournisseur remplaçable) |
 | ADR | Chaque décision structurante de ce document devient un fichier `docs/ADR/000X-*.md` immuable |

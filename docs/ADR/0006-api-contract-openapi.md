@@ -2,6 +2,7 @@
 
 - **Statut** : accepté
 - **Date** : 2026-08-20
+- **Précisée par** : [ADR 0011](0011-openapi-spec-first-oapi-codegen.md) — la présente ADR employait la formule ambiguë « généré/maintenu dans `v1.yaml` » sans dire dans quel sens circule l'information. L'ADR 0011 tranche : **spec-first**, avec `oapi-codegen`.
 
 ## Contexte
 

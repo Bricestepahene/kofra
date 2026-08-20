@@ -1,10 +1,27 @@
 # CODEOWNERS — KOFRA
 #
-# Objectif : forcer une revue humaine spécialisée sur les zones du dépôt où une
-# erreur a un impact direct sur la promesse zero-knowledge, la chaîne de preuve,
-# la conformité ou la disponibilité (CLAUDE.md §0, docs/DEFINITION_OF_DONE.md).
-# GitHub applique la règle la plus spécifique qui matche un chemin donné — les
-# entrées ci-dessous sont donc ordonnées de la plus générale à la plus précise.
+# Objectif : identifier les zones du dépôt où une erreur a un impact direct sur la
+# promesse zero-knowledge, la chaîne de preuve, la conformité ou la disponibilité
+# (CLAUDE.md §0, docs/DEFINITION_OF_DONE.md), et y attacher une revue humaine
+# spécialisée. GitHub applique la règle la plus spécifique qui matche un chemin
+# donné — les entrées ci-dessous sont donc ordonnées de la plus générale à la plus
+# précise.
+#
+# ATTENTION — ce fichier est aujourd'hui INDICATIF, pas contraignant.
+# La protection de branche est bien active sur main depuis le 2026-08-20 (push
+# direct bloqué, enforce_admins actif), mais l'option "Require review from Code
+# Owners" y est volontairement DÉSACTIVÉE : l'unique CODEOWNER est aussi l'unique
+# auteur, et GitHub interdit d'approuver sa propre PR — l'activer rendrait toute
+# fusion impossible en solo.
+#
+# Ce fichier vaut donc comme convention d'équipe et cartographie du risque ; il ne
+# bloque aucune fusion. À activer (avec required_approving_review_count: 1) dès
+# qu'un second développeur rejoint le projet. Voir
+# docs/security-exceptions/2026-08-20-statuts-ci-non-requis.md.
+#
+# Plusieurs chemins listés ci-dessous (control-plane/, infra/) n'existent pas
+# encore : ils sont déclarés en amont pour que la règle s'applique dès le premier
+# commit qui les crée, plutôt qu'après coup.
 #
 # Convention d'évolution : @Bricestepahene est aujourd'hui l'unique contributeur,
 # donc l'unique owner de chaque zone. Quand une équipe ou une personne rejoint

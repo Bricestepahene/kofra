@@ -2,6 +2,11 @@
 
 - **Statut** : accepté
 - **Date** : 2026-08-20
+- **Précisée par** (LOT PRÉ-0, 2026-08-20) :
+  - [ADR 0008](0008-pgx-v5-driver.md) — le driver est `pgx/v5` natif, pas `database/sql`.
+  - [ADR 0009](0009-postgresql-version-and-database-roles.md) — PostgreSQL 16.9 épinglé, et les trois rôles `kofra_owner` / `kofra_migrator` / `kofra_app`.
+  - [ADR 0010](0010-migration-ownership-app-and-river.md) — `golang-migrate` ne possède que les migrations **applicatives** ; River possède les siennes et son DDL n'est jamais recopié.
+  - Décision D6 (`docs/DECISIONS_NEEDED.md`) — l'introduction de `sqlc` est **différée au Lot A**, quand une table multi-tenant et une requête métier réelle existeront.
 
 ## Contexte
 

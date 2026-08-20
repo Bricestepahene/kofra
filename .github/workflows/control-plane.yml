@@ -9,6 +9,20 @@
 # Version Go pinnée exactement (1.23.4, pas "1.23.x") — le control plane a
 # vocation à tourner 10-15 ans (ADR 0001) ; une version flottante en CI
 # introduirait une dérive silencieuse entre les builds.
+#
+# C'est la CI qui verrouille réellement la toolchain : la directive `go` de
+# control-plane/go.mod exprime une version MINIMALE, pas un verrou (ADR 0013).
+# GOTOOLCHAIN=local interdit à Go de télécharger silencieusement une autre
+# toolchain que celle installée par setup-go.
+#
+# Le même raisonnement s'applique à golangci-lint : il était épinglé à
+# "latest", ce qui contredisait directement le paragraphe ci-dessus — un linter
+# qui change de règles entre deux exécutions peut faire passer au vert un code
+# qu'il refusait la veille, y compris sur une règle de sécurité. Version exacte
+# désormais, conformément à la décision D14 (docs/DECISIONS_NEEDED.md).
+# Contrainte de compatibilité à respecter en cas de changement : golangci-lint
+# v1.x va avec golangci-lint-action@v6 ; passer à la ligne v2.x imposerait
+# l'action v7+ et un schéma de configuration différent (sujet ouvert O1).
 
 name: control-plane
 
@@ -28,6 +42,10 @@ permissions:
 
 env:
   GO_VERSION: "1.23.4"
+  GOLANGCI_LINT_VERSION: "v1.62.2"
+  # Interdit le téléchargement automatique d'une toolchain différente de celle
+  # installée par setup-go (cf. en-tête).
+  GOTOOLCHAIN: local
 
 jobs:
   lint:
@@ -60,14 +78,16 @@ jobs:
         run: go vet ./...
 
       # golangci-lint est la cible de lint retenue dans le Makefile racine
-      # (`make lint`) et le design V1 §8 — exécuté via l'action officielle,
-      # sans fichier .golangci.yml requis (règles par défaut tant qu'aucune
-      # configuration dédiée n'est ajoutée).
+      # (`make lint`) et le design V1 §8. Version exacte, jamais "latest" (D14).
+      # Le ruleset (.golangci.yml) reste à définir au LOT 0 étape 0.13 : tant
+      # qu'il n'existe pas, ce sont les règles par défaut qui s'appliquent, et
+      # écrire un ruleset à l'aveugle produirait un faux vert (sujet ouvert O1).
+      # La version doit rester alignée avec GOLANGCI_LINT_VERSION du Makefile.
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
           working-directory: control-plane
-          version: latest
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
 
   test:
     name: test
