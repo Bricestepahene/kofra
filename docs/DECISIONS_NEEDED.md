@@ -169,6 +169,16 @@ L'ADR 0012 pose la fondation sans exporteur. Le choix d'un collecteur et de sa d
 
 `CONTRIBUTING.md` constate qu'aucune norme stricte n'est imposée. La signature des commits (GPG/SSH) est un objectif cohérent avec la trajectoire SLSA de `docs/RELEASE_POLICY.md`. Le blocage a disparu : la protection de branche étant active depuis le passage en public (D9/O2), `required_signatures` peut maintenant être exigé sur `main`. Reste à trancher **quand** l'activer — le faire avant que la clé de signature ne soit configurée localement bloquerait tout commit.
 
+### O12 — Épinglage par SHA de toutes les actions tierces · `OPEN`
+
+Découvert en poussant la branche du LOT PRÉ-0 : Dependabot a signalé un **CRITICAL** sur `aquasecurity/trivy-action@0.28.0`, utilisé par `security.yml` (CVE-2026-33634 / GHSA-69fq-xp46-6x23, CVSS 9.4). En mars 2026, un attaquant a force-pushé 76 des 77 tags de cette action vers un infostealer qui vidait la mémoire du runner et exfiltrait secrets, clés SSH et identifiants cloud. Le tag `0.28.0` avait même été **supprimé** lors de la remédiation — le workflow aurait échoué au premier run.
+
+**Corrigé dans cette PR** : `trivy-action` épinglé par SHA `57a97c7e…` (tag 0.35.0, commit du 2026-03-04, antérieur à l'attaque et protégé par les immutable releases).
+
+**Reste ouvert** : quatre actions tierces sont encore épinglées par **tag mobile**, donc exposées au même vecteur — `anchore/sbom-action@v0.17.2`, `golangci/golangci-lint-action@v6`, `pnpm/action-setup@v4`, `softprops/action-gh-release@v2`. `docs/DEPENDENCY_POLICY.md` recommande déjà l'épinglage par SHA pour les actions tierces à permissions élevées ; l'incident montre que la recommandation doit devenir une règle. À traiter dans une PR dédiée, avec vérification que chaque SHA retenu est antérieur ou postérieur à tout incident connu de l'action concernée.
+
+**Leçon à ne pas perdre** : un tag Git est mutable. C'est exactement ce qui a été exploité ici, et c'est le même raisonnement que celui appliqué à PostgreSQL (ADR 0009, digest) et à `golangci-lint` (D14).
+
 ### O11 — Statuts CI requis sur `main` · `OPEN` — planifié à la première PR
 
 Écart résiduel de D9 : `required_status_checks` est à `null`, donc un job rouge n'empêche pas encore une fusion. Les noms exacts des checks ne sont pas confirmés (aucun run de PR à ce jour) et en exiger un mal orthographié bloquerait définitivement toute fusion. Marche à suivre détaillée dans [`security-exceptions/2026-08-20-statuts-ci-non-requis.md`](security-exceptions/2026-08-20-statuts-ci-non-requis.md).
