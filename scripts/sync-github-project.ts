@@ -249,6 +249,30 @@ function optionId(field: RemoteField | undefined, optionName: string): string | 
   return field?.options?.find((o) => o.name === optionName)?.id;
 }
 
+// --- Labels -----------------------------------------------------------
+
+/** `gh issue create --label` requires the label to already exist — it does
+ *  not create it on the fly. Pre-create one `program:PXX` label per program
+ *  before touching any issue. `gh label create --force` is idempotent
+ *  (updates the label if it already exists, no error). */
+function ensureProgramLabels(owner: string, repo: string, programs: Program[], apply: boolean): void {
+  for (const program of programs) {
+    const name = `program:${program.id}`;
+    if (!apply) {
+      console.log(`[dry-run] would ensure label "${name}"`);
+      continue;
+    }
+    gh([
+      "label", "create", name,
+      "--repo", `${owner}/${repo}`,
+      "--description", program.name,
+      "--color", "1D76DB",
+      "--force",
+    ]);
+  }
+  if (apply) console.log(`[labels] ensured ${programs.length} program labels`);
+}
+
 // --- Issues ---------------------------------------------------------------
 
 interface RemoteIssue {
@@ -321,16 +345,22 @@ function ensureIssue(
     return { number: -1, url: "dry-run", body };
   }
 
-  const created = ghJSON<{ number: number; url: string }>([
+  // `gh issue create` has no --format/--json flag — it prints the created
+  // issue's URL as plain text on stdout. Parse the number back out of it.
+  const url = gh([
     "issue", "create",
     "--repo", `${owner}/${repo}`,
     "--title", title,
     "--body", body,
     "--label", `program:${epic.program}`,
-    "--format", "json",
-  ]);
-  console.log(`[issue] created #${created.number} (${epic.id})`);
-  return { ...created, body };
+  ]).trim();
+  const numberMatch = url.match(/\/issues\/(\d+)$/);
+  if (!numberMatch) {
+    throw new Error(`could not parse issue number from "gh issue create" output: ${url}`);
+  }
+  const number = parseInt(numberMatch[1]!, 10);
+  console.log(`[issue] created #${number} (${epic.id})`);
+  return { number, url, body };
 }
 
 // --- Project items and field values ---------------------------------------
@@ -340,22 +370,34 @@ interface ProjectItem {
   content?: { url?: string };
 }
 
+/** Fetched once per run (not per epic) — item-list is a single paginated
+ *  call, refetching it 107 times inside the loop would be needlessly slow. */
+function listProjectItemsByUrl(owner: string, projectNumber: number): Map<string, string> {
+  const items = ghJSON<{ items: ProjectItem[] }>([
+    "project", "item-list", String(projectNumber), "--owner", owner, "--format", "json", "--limit", "1000",
+  ]).items;
+  const byUrl = new Map<string, string>();
+  for (const item of items) {
+    if (item.content?.url) byUrl.set(item.content.url, item.id);
+  }
+  return byUrl;
+}
+
 function findOrAddItem(
   owner: string,
   projectNumber: number,
   issueUrl: string,
+  itemsByUrl: Map<string, string>,
   apply: boolean,
 ): string {
   if (!apply) return "DRY-RUN-ITEM-ID";
-  const items = ghJSON<{ items: ProjectItem[] }>([
-    "project", "item-list", String(projectNumber), "--owner", owner, "--format", "json", "--limit", "1000",
-  ]).items;
-  const existing = items.find((i) => i.content?.url === issueUrl);
-  if (existing) return existing.id;
+  const existing = itemsByUrl.get(issueUrl);
+  if (existing) return existing;
 
   const added = ghJSON<{ id: string }>([
     "project", "item-add", String(projectNumber), "--owner", owner, "--url", issueUrl, "--format", "json",
   ]);
+  itemsByUrl.set(issueUrl, added.id);
   return added.id;
 }
 
@@ -378,6 +420,10 @@ function setFieldValues(
     edits.push({ field: fieldName, args: ["--single-select-option-id", optId] });
   };
   const text = (fieldName: string, value: string) => {
+    // gh project item-edit rejects setting a text field to an empty string
+    // ("no changes to make") — there is nothing to set, so skip it rather
+    // than treat that as an error.
+    if (value === "") return;
     const field = fields.get(fieldName);
     if (!field) return;
     edits.push({ field: fieldName, args: ["--text", value] });
@@ -391,7 +437,6 @@ function setFieldValues(
   singleSelect("Security critical", epic.security_critical ? "Yes" : "No");
   text("Depends on", epic.depends_on.join(", "));
   singleSelect("Release gate", epic.release_gate);
-  text("Acceptance evidence", "");
 
   for (const edit of edits) {
     const field = fields.get(edit.field)!;
@@ -399,13 +444,26 @@ function setFieldValues(
       console.log(`[dry-run] would set "${edit.field}" for ${epic.id}`);
       continue;
     }
+    setItemField(field, itemId, projectId, edit.args);
+  }
+}
+
+/** `gh project item-edit` errors with "no changes to make" whenever the new
+ *  value already matches the current one — expected on every re-run of an
+ *  already-synced epic, not a real failure. Treat it as a no-op; re-throw
+ *  anything else. */
+function setItemField(field: RemoteField, itemId: string, projectId: string, args: string[]): void {
+  try {
     gh([
       "project", "item-edit",
       "--id", itemId,
       "--project-id", projectId,
       "--field-id", field.id,
-      ...edit.args,
+      ...args,
     ]);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (!/no changes to make/i.test(message)) throw err;
   }
 }
 
@@ -421,10 +479,12 @@ async function main() {
   const project = findOrCreateProject(owner, projectTitle, apply);
   ensureProjectLinkedToRepo(owner, repo, project.number, apply);
   const fields = ensureFields(owner, project.number, apply);
+  ensureProgramLabels(owner, repo, backlog.programs, apply);
+  const itemsByUrl = apply ? listProjectItemsByUrl(owner, project.number) : new Map<string, string>();
 
   for (const epic of backlog.epics) {
     const issue = ensureIssue(owner, repo, epic, backlog, apply);
-    const itemId = findOrAddItem(owner, project.number, issue.url, apply);
+    const itemId = findOrAddItem(owner, project.number, issue.url, itemsByUrl, apply);
     setFieldValues(project.id, itemId, fields, epic, apply);
   }
 
