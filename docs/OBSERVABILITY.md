@@ -2,9 +2,16 @@
 
 Ce document fixe comment KOFRA observe techniquement son control plane : logs, métriques, traces. Il opérationnalise EP-02.09 (socle local), EP-03.09 (audit technique, métriques, traces et logs sans secrets) et EP-10.07 (observabilité production, SLO, alerting, runbooks) du backlog. Il est délibérément séparé de la chaîne de preuve métier (`internal/proof`) — voir la section dédiée ci-dessous, qui est le point le plus important de ce document.
 
+## Pile retenue en V1 (ADR 0012)
+
+- **Journalisation** : `log/slog` de la bibliothèque standard Go, avec un handler **JSON**. Aucune bibliothèque de log tierce — un composant qui voit passer toutes les structures de l'application ne doit pas ajouter de surface de dépendance à auditer.
+- **Traces** : une **fondation OpenTelemetry** (instrumentation, propagation de l'ID de corrélation) est posée dès la V1, **sans aucun exporteur SaaS distant**.
+- **Aucune donnée de télémétrie ne quitte l'infrastructure KOFRA en V1.** Introduire un exporteur distant, quel qu'il soit, exige une nouvelle ADR et une revue explicite au regard de `docs/DATA_CLASSIFICATION.md` — ce n'est pas une décision de configuration. Le motif est direct : un payload d'erreur qui contiendrait accidentellement un champ sensible quitterait le périmètre KOFRA, et la règle ci-dessous veut précisément qu'un champ non classifié soit traité comme sensible par défaut.
+- Le choix d'un collecteur OpenTelemetry **auto-hébergé** reste ouvert et relève de l'exploitation (P10), pas de la V1 applicative.
+
 ## Logs structurés sans secret
 
-Tous les logs de `control-plane/` sont structurés (JSON ou équivalent), jamais en texte libre non parsable. L'invariant CLAUDE.md §4 s'applique sans exception : **aucun secret, clé privée, mot de passe ou ciphertext n'apparaît jamais dans un log, un message d'erreur ou un outil de support** — pas même en `DEBUG`, pas même « temporairement pour investiguer ».
+Tous les logs de `control-plane/` sont structurés (JSON via `slog`), jamais en texte libre non parsable. L'invariant CLAUDE.md §4 s'applique sans exception : **aucun secret, clé privée, mot de passe ou ciphertext n'apparaît jamais dans un log, un message d'erreur ou un outil de support** — pas même en `DEBUG`, pas même « temporairement pour investiguer ».
 
 Ceci n'est pas une convention laissée au jugement individuel : EP-03.09 exige un **test automatisé qui vérifie qu'aucun champ marqué sensible n'apparaît dans les logs applicatifs**. Ce test fait partie de la Définition de Done (`docs/DEFINITION_OF_DONE.md`) pour tout module qui journalise une structure contenant potentiellement un champ sensible (identifiants, tokens de session, ciphertexts, enveloppes de clé). Un champ ajouté à une structure existante sans être explicitement classifié (`docs/DATA_CLASSIFICATION.md`) est traité comme sensible par défaut jusqu'à preuve du contraire.
 
@@ -20,7 +27,9 @@ Ces métriques sont la base d'EP-10.07 (SLO et alerting production) : elles doiv
 
 ## Traces et corrélation par requête
 
-Chaque requête HTTP entrant dans `control-plane/` porte un **ID de corrélation** (EP-03.06 : « squelette HTTP, erreurs standardisées et corrélation »), généré à l'entrée si absent, propagé dans tous les logs émis pendant le traitement de cette requête, et retourné au client (en-tête de réponse) pour permettre de relier un incident signalé côté `web/` ou `extension/` à sa trace côté serveur. Une future intégration de traces distribuées (OpenTelemetry ou équivalent) s'appuiera sur cet ID plutôt que d'en introduire un second — un seul identifiant de corrélation par requête, jamais deux systèmes concurrents.
+Chaque requête HTTP entrant dans `control-plane/` porte un **ID de corrélation** (EP-03.06 : « squelette HTTP, erreurs standardisées et corrélation »), généré à l'entrée si absent, propagé dans tous les logs émis pendant le traitement de cette requête, et retourné au client (en-tête de réponse) pour permettre de relier un incident signalé côté `web/` ou `extension/` à sa trace côté serveur. La fondation OpenTelemetry posée en V1 (ADR 0012) s'appuie sur **cet** identifiant plutôt que d'en introduire un second — un seul identifiant de corrélation par requête, jamais deux systèmes concurrents.
+
+Cet identifiant ne doit pas être devinable au point de servir d'oracle, et la réponse d'erreur qui le porte ne divulgue **ni version, ni dépendance, ni détail d'implémentation** (`docs/DATA_CLASSIFICATION.md`, niveau Interne). La même règle vaut pour les endpoints `health` et `readiness` (D7).
 
 ## Ce qui déclenche une alerte vs ce qui reste dans un dashboard
 

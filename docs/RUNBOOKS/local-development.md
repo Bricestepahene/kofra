@@ -14,11 +14,11 @@ Ce runbook documente la procédure cible, valide dès que les répertoires exist
 
 ## 1. Prérequis
 
-1. Go `1.23.4` (version exacte figée par `control-plane/go.mod` une fois créé — CLAUDE.md §2). Vérifier : `go version`.
+1. Go `1.23.4`. Vérifier : `go version`. **Attention** : la directive `go` de `control-plane/go.mod` exprime une version **minimale**, pas un verrou — une toolchain plus récente compilera sans broncher. Le verrouillage effectif est assuré par la CI (ADR 0013) ; en local, vérifier la version soi-même.
 2. Node.js `>= 20` (`package.json` → `engines.node`). Vérifier : `node -v`.
 3. pnpm `9.15.0` exact (`package.json` → `packageManager`). Installer via corepack : `corepack enable && corepack prepare pnpm@9.15.0 --activate`.
-4. Docker + Docker Compose v2 (pour PostgreSQL local une fois `infra/docker/compose.dev.yml` livré par EP-02.04).
-5. `golangci-lint` et `gofumpt` installés localement pour `make lint` (une fois `control-plane/` livré).
+4. Docker + Docker Compose v2 — pour **PostgreSQL 16.9**, épinglé par tag et digest (ADR 0009), une fois `infra/docker/compose.dev.yml` livré par EP-02.04.
+5. `gofumpt` et `golangci-lint` **à la version exacte épinglée** par le projet (D14 — `latest` proscrit ; le numéro sera arrêté au LOT 0, cf. `docs/DECISIONS_NEEDED.md` O1) pour `make lint`, une fois `control-plane/` livré.
 
 ## 2. Premier lancement
 
@@ -26,8 +26,8 @@ Ce runbook documente la procédure cible, valide dès que les répertoires exist
 2. Copier l'environnement : `cp .env.example .env`, ne jamais committer `.env`.
 3. Installer les dépendances TypeScript du monorepo : `pnpm install` (fonctionne dès maintenant).
 4. Démarrer PostgreSQL local : `make docker-up` (nécessite `infra/docker/compose.dev.yml`, EP-02.04).
-5. Appliquer les migrations : `make migrate-up` (nécessite `control-plane/db/migrations`, EP-03.01 et suivants).
-6. Générer le code : `make sqlc-generate` puis `make api-codegen` une fois `control-plane/api/openapi/v1.yaml` livré (`api-codegen` reste un stub en attendant, cf. Makefile).
+5. Appliquer les migrations : `make migrate` — **point d'entrée unique** qui exécute la séquence figée par l'ADR 0010 : migrations applicatives (`golang-migrate`) → migrations River (mécanisme natif de River) → vérification. Ne jamais appliquer les deux jeux séparément à la main, et ne jamais recopier le DDL de River dans `golang-migrate`.
+6. Générer le code : `make api-codegen` une fois `control-plane/api/openapi/v1.yaml` livré — la chaîne est **spec-first** (`oapi-codegen`, ADR 0011). `make sqlc-generate` reste un stub : `sqlc` est différé au Lot A (D6), le LOT 0 ne crée aucune table artificielle pour l'alimenter.
 7. Lancer l'ensemble : `make dev` (api + worker + web en parallèle), ou séparément `make dev-api` et `make dev-web` dans deux terminaux.
 8. Arrêter proprement : `make docker-down`.
 

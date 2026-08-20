@@ -315,25 +315,36 @@ epics:
   # ---------------------------------------------------------------------
   # P02 — Dépôt, outillage et chaîne de livraison
   # ---------------------------------------------------------------------
+  # Largement livré le 2026-08-20 : dépôt passé public (O2 tranché), protection de
+  # main activée et vérifiée par l'API, secret scanning et push protection actifs,
+  # licence BUSL-1.1 appliquée (D15). Reste le seul écart résiduel : les statuts CI
+  # ne sont pas encore requis pour fusionner — exception O11 / fichier
+  # docs/security-exceptions/2026-08-20-statuts-ci-non-requis.md
   - id: EP-02.01
     program: P02
     title: Initialiser le dépôt, conventions et protections Git
-    description: Déjà largement fait (repo créé, CLAUDE.md, structure) — formaliser les protections de branche et les règles de contribution.
+    description: Dépôt, CLAUDE.md, structure, licence et protections de branche livrés. Reste à exiger les statuts CI une fois leurs noms révélés par la première PR.
     depends_on: [EP-01.09]
     priority: P0
-    risk: Medium
-    security_critical: false
+    risk: High
+    security_critical: true
     release_gate: None
     milestone: foundation
     size: S
     acceptance_criteria:
-      - Protection de la branche main activée (revue requise, statuts CI requis une fois EP-02.05/06 en place).
-      - CONTRIBUTING.md écrit si le projet accueille d'autres contributeurs.
+      - "FAIT : dépôt passé public le 2026-08-20 après scan complet de l'historique (aucun secret commité, 0 fork au basculement)."
+      - "FAIT : protection de main active — PR obligatoire, push direct bloqué, enforce_admins, historique linéaire, force-push et suppression interdits."
+      - "FAIT : secret scanning et push protection activés."
+      - "FAIT : licence BUSL-1.1 appliquée, bascule MPL-2.0 au 2030-08-20 (D15)."
+      - "FAIT : docs/RELEASE_POLICY.md, CONTRIBUTING.md, .github/CODEOWNERS, CLAUDE.md et SECURITY_POLICY.md alignés sur l'état réel ; l'exception devenue sans objet a été supprimée, pas laissée périmée."
+      - "RESTE : required_status_checks configuré sur main avec les noms de checks réels, relevés lors de la première PR."
+      - "RESTE : dès un second développeur, required_approving_review_count à 1 et require_code_owner_reviews à true."
+      - "Vérification par preuve, pas par intention : GET repos/Bricestepahene/kofra/branches/main/protection renvoie une configuration active."
 
   - id: EP-02.02
     program: P02
-    title: "Installer l'outillage Go : sqlc, migrations, River, lint, tests"
-    description: Compléter l'outillage Go au-delà du LOT 1 (golangci-lint, golang-migrate, sqlc, River réellement installés et configurés).
+    title: "Installer l'outillage Go : migrations, River, lint, tests"
+    description: LOT 0. Compléter l'outillage Go (golangci-lint à version exacte, gofumpt, golang-migrate, River réellement installés et configurés). sqlc est différé au Lot A (D6).
     depends_on: [EP-02.01]
     priority: P0
     risk: Medium
@@ -342,8 +353,11 @@ epics:
     milestone: foundation
     size: M
     acceptance_criteria:
-      - golangci-lint, gofumpt, sqlc et golang-migrate exécutables via make lint/sqlc-generate/migrate-*.
-      - River intégré et testé avec un job trivial de bout en bout.
+      - golangci-lint (version exacte, jamais latest — D14), gofumpt et golang-migrate exécutables via make lint et make migrate-*.
+      - La version de golangci-lint est identique dans le Makefile et dans .github/workflows/control-plane.yml, et le même commit produit le même verdict en local et en CI.
+      - Ruleset .golangci.yml versionné, écrit une fois la toolchain installée et le résultat vérifié (sujet ouvert O1) — jamais à l'aveugle.
+      - River intégré et testé avec un job trivial de bout en bout, sur pgx/v5 (ADR 0008).
+      - sqlc n'est PAS installé à ce stade — différé au Lot A avec EP-03.11 (D6).
 
   - id: EP-02.03
     program: P02
@@ -362,7 +376,7 @@ epics:
   - id: EP-02.04
     program: P02
     title: Configurer Docker local, environnement de développement et Makefile
-    description: Ajouter compose.dev.yml (PostgreSQL local) et compléter les cibles Makefile qui restaient des stubs après le LOT 1.
+    description: LOT 0. Ajouter compose.dev.yml (PostgreSQL 16.9 local, épinglé par tag et digest) et compléter les cibles Makefile restées des stubs.
     depends_on: [EP-02.02, EP-02.03]
     priority: P0
     risk: Medium
@@ -371,8 +385,10 @@ epics:
     milestone: foundation
     size: M
     acceptance_criteria:
-      - make docker-up démarre un PostgreSQL local utilisable par les migrations.
+      - make docker-up démarre un PostgreSQL 16.9 local utilisable par les migrations, épinglé par tag ET digest (ADR 0009).
       - Un nouveau développeur peut lancer make dev après un simple pnpm install + make docker-up.
+      - make docker-down ne laisse aucun volume orphelin.
+      - "Les identifiants par défaut sont explicitement locaux : compose.dev.yml porte un avertissement interdisant leur réutilisation hors du poste."
 
   - id: EP-02.05
     program: P02
@@ -480,26 +496,16 @@ epics:
     acceptance_criteria:
       - Le service refuse de démarrer si une variable de configuration sensible est absente, plutôt que d'utiliser un défaut silencieux.
 
+  # LOT 0. Scindé de son périmètre initial par la décision D12 (docs/DECISIONS_NEEDED.md) :
+  # le critère d'origine exigeait "toutes les tables du design V1 §4.3", ce qui
+  # contredisait à la fois le périmètre du LOT 0 (aucun module métier) et les epics
+  # EP-04.01, EP-05.04, EP-06.01/03 et EP-07.02, qui créent chacun leur part de ces
+  # mêmes tables. Les tables métier de fondation relèvent désormais d'EP-03.11.
   - id: EP-03.03
     program: P03
-    title: Créer le schéma PostgreSQL de fondation et les rôles DB
-    description: Tables du design V1 §4.3 (organizations, users, vaults, vault_key_envelopes, vault_data_keys, secrets, mandates, policies, proof_events, recovery_*) et rôles DB par principe de moindre privilège.
+    title: Fondations PostgreSQL — rôles, extensions et conventions de migration
+    description: "LOT 0. Socle de base de données sans aucune table métier : version épinglée, les trois rôles d'ADR 0009, extensions requises, conventions de migration réversible et point d'entrée unique d'ADR 0010."
     depends_on: [EP-02.04, EP-01.06]
-    priority: P0
-    risk: Critical
-    security_critical: true
-    release_gate: Alpha
-    milestone: foundation
-    size: XL
-    acceptance_criteria:
-      - Schéma initial couvre toutes les tables listées au design V1 §4.3, sans colonne de contenu en clair.
-      - Rôles PostgreSQL distincts pour l'application vs les migrations, avec droits minimaux.
-
-  - id: EP-03.04
-    program: P03
-    title: Configurer RLS, contexte d'organisation et tests d'isolation
-    description: Row-Level Security par organisation sur toutes les tables multi-tenant, avec tests prouvant qu'une organisation ne peut jamais lire les données d'une autre.
-    depends_on: [EP-03.03]
     priority: P0
     risk: Critical
     security_critical: true
@@ -507,13 +513,44 @@ epics:
     milestone: foundation
     size: L
     acceptance_criteria:
-      - RLS activée sur toutes les tables portant un organization_id.
-      - Un test d'isolation exécuté sous un rôle applicatif non-superutilisateur prouve qu'une requête hors contexte renvoie zéro ligne, pas une erreur silencieusement contournable.
+      - PostgreSQL 16.9 épinglé par tag et digest (ADR 0009), identique en local, CI, staging et production pour la version majeure.
+      - "Trois rôles créés avec droits vérifiés par requête : kofra_owner (init infra), kofra_migrator (DDL), kofra_app (runtime)."
+      - kofra_app n'a aucun droit DDL, n'est jamais superutilisateur et n'a jamais l'attribut BYPASSRLS — vérifié par requête, pas par intention.
+      - Cycle migrate-up puis migrate-down puis migrate-up vert sur base vierge (réversibilité exigée par docs/DEFINITION_OF_DONE.md).
+      - Point d'entrée unique de migration livré, exécutant la séquence applicatif puis River puis vérification (ADR 0010).
+      - Le DDL interne de River n'est recopié nulle part dans control-plane/db/migrations/.
+      - Aucune table du design V1 §4.3 présente à l'issue de cet epic.
 
+  # Lot A (D12). Dépend d'EP-03.11, qui crée la première table réellement
+  # multi-tenant — activer la RLS avant qu'une telle table existe ne protégerait
+  # rien et ne serait pas testable honnêtement (D11). La chaîne est donc :
+  # EP-03.03 (fondations) -> EP-03.11 (tables) -> EP-03.04 (RLS) -> EP-04.01 (métier).
+  # Ne PAS faire dépendre cet epic d'EP-04.01, qui dépend lui-même d'EP-03.04 :
+  # ce serait un cycle.
+  - id: EP-03.04
+    program: P03
+    title: Configurer RLS, contexte d'organisation et tests d'isolation
+    description: Lot A. Row-Level Security par organisation sur toutes les tables multi-tenant, avec tests prouvant qu'une organisation ne peut jamais lire les données d'une autre.
+    depends_on: [EP-03.03, EP-03.11]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: L
+    acceptance_criteria:
+      - RLS activée sur toutes les tables portant un organization_id — obligatoire dès la première d'entre elles, jamais rétrofitée (D11).
+      - Un test d'isolation exécuté sous kofra_app prouve qu'une requête hors contexte renvoie zéro ligne, pas une erreur silencieusement contournable.
+      - Aucun test d'isolation n'est exécuté sous kofra_owner ni kofra_migrator — un rôle privilégié contourne la RLS et produirait un faux vert (ADR 0009).
+      - Le sort des tables internes de River vis-à-vis de la RLS est explicitement décidé et écrit — elles ne portent pas d'organization_id (ADR 0010).
+
+  # sqlc retiré du périmètre de cet epic par la décision D6 : il est introduit au
+  # Lot A, avec EP-03.11, quand une table multi-tenant et une requête métier réelle
+  # existent. Le LOT 0 ne crée aucune table artificielle pour l'alimenter.
   - id: EP-03.05
     program: P03
-    title: Mettre en place migrations, sqlc, transactions et repository conventions
-    description: Conventions de requêtes SQL explicites par domaine (control-plane/db/queries/), génération sqlc, et pattern de transaction partagée (ADR 0002).
+    title: Mettre en place migrations, transactions et repository conventions
+    description: LOT 0. Conventions de requêtes SQL explicites par domaine (control-plane/db/queries/) et pattern de transaction partagée sur pgx/v5 (ADR 0002, ADR 0008). L'introduction de sqlc est différée au Lot A (D6).
     depends_on: [EP-03.03]
     priority: P0
     risk: Medium
@@ -523,7 +560,26 @@ epics:
     size: M
     acceptance_criteria:
       - Convention "un fichier de requêtes SQL par domaine" respectée et documentée.
-      - Pattern de transaction partagée testé (mutation + événement + job dans la même transaction).
+      - Pattern de transaction partagée testé (mutation + événement + job dans la même transaction), sur pgx.Tx et non database/sql.
+      - Un test prouve qu'un rollback de la transaction métier annule aussi l'insertion du job River.
+
+  # Lot A (D12) — la part "tables métier" scindée d'EP-03.03.
+  - id: EP-03.11
+    program: P03
+    title: Créer le schéma métier de fondation
+    description: Lot A. Premières tables multi-tenant du design V1 §4.3 et leurs contraintes, sans colonne de contenu en clair. Débloque l'activation de la RLS (EP-03.04) et l'introduction de sqlc (D6).
+    depends_on: [EP-03.03, EP-03.05]
+    priority: P0
+    risk: Critical
+    security_critical: true
+    release_gate: Alpha
+    milestone: alpha-interne
+    size: L
+    acceptance_criteria:
+      - Aucune colonne ne peut contenir un secret, une clé privée ou un mot de passe en clair (design V1 §4.3).
+      - Toute table multi-tenant porte un organization_id, condition d'application de la RLS par EP-03.04.
+      - sqlc introduit et configuré pour émettre du code pgx/v5 (ADR 0008), avec génération idempotente vérifiée en CI.
+      - Les tables propres à un domaine restent créées par leur epic porteur (EP-04.01, EP-05.04, EP-06.01, EP-06.03, EP-07.02) — cet epic ne les duplique pas.
 
   - id: EP-03.06
     program: P03

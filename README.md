@@ -20,4 +20,14 @@ Phase 1 en cours de spécification puis d'implémentation. Aucun code applicatif
 
 ## Licence
 
-Propriétaire — tous droits réservés.
+**Business Source License 1.1** (BUSL-1.1) — voir [`LICENSE`](LICENSE).
+
+Le code est **public et auditable**. C'est délibéré : KOFRA promet qu'une compromission de son infrastructure ne révèle que du ciphertext inexploitable, et qu'aucune cryptographie n'y est improvisée. Ces promesses valent surtout si n'importe qui peut les vérifier.
+
+En pratique :
+
+- Vous pouvez **lire, auditer, modifier et exécuter** KOFRA, y compris en production, pour votre organisation et pour vos propres clients — c'est explicitement accordé.
+- Vous ne pouvez pas en faire une **offre commerciale concurrente** (service hébergé, managé ou embarqué revendu à des tiers) avant la Change Date.
+- Le **2030-08-20**, cette version bascule automatiquement sous **Mozilla Public License 2.0**.
+
+Pour un autre arrangement de licence : `contact@kofra.io` (adresse à activer, cf. `docs/DECISIONS_NEEDED.md` O3).

@@ -26,10 +26,10 @@ cible fonctionne avant de l'avoir vue exécuter quelque chose de réel dans le
 `Makefile`. À date, le control plane Go n'est pas encore initialisé (`README.md`,
 section "Statut").
 
-Un guide de mise en route détaillé (base de données locale, variables d'environnement,
-ordre de lancement des services) est prévu dans
-`docs/RUNBOOKS/local-development.md` — pas encore rédigé. Tant qu'il n'existe pas,
-le `Makefile` et `CLAUDE.md` §3 font foi.
+Un guide de mise en route détaillé (prérequis, base de données locale, variables
+d'environnement, ordre de lancement des services) est disponible dans
+[`docs/RUNBOOKS/local-development.md`](docs/RUNBOOKS/local-development.md). Il est
+explicite sur ce qui fonctionne réellement aujourd'hui et ce qui attend encore un lot.
 
 Installez aussi les hooks pre-commit locaux (détection de secrets, formatage,
 fichiers volumineux) :
@@ -53,22 +53,34 @@ norme est adoptée — `CLAUDE.md` sera mis à jour en premier, ce fichier ensui
 
 ## Processus de Pull Request
 
-- La branche par défaut est protégée : tout changement passe par une PR, jamais par
-  un push direct.
-- La CI doit être verte avant fusion. Le pipeline de sécurité prévu
-  (`.github/workflows/security.yml` — gosec, govulncheck, Trivy, CodeQL, npm audit,
-  Dependency Review, SBOM, cf. `CLAUDE.md` §2 et §5) n'est pas encore en place dans
-  ce dépôt ; une fois actif, un **CRITICAL** exploitable bloque la fusion sans
-  exception, un **HIGH** doit être corrigé ou faire l'objet d'une exception écrite
-  et datée dans `docs/security-exceptions/`.
+> **`main` est protégée.** Le push direct est bloqué par GitHub, y compris pour le
+> propriétaire du dépôt (`enforce_admins` actif). L'historique doit rester linéaire,
+> le force-push et la suppression de branche sont interdits, et les conversations
+> doivent être résolues avant fusion. Secret scanning et push protection sont actifs :
+> un secret poussé par mégarde est intercepté **avant** d'entrer dans l'historique.
+>
+> **Un point n'est pas encore appliqué** : les statuts CI ne sont pas requis pour
+> fusionner. Un job rouge se voit, il ne bloque pas — le vert doit donc être
+> constaté à la main. Voir
+> [`docs/security-exceptions/2026-08-20-statuts-ci-non-requis.md`](docs/security-exceptions/2026-08-20-statuts-ci-non-requis.md).
+
+- **Tout changement passe par une branche courte et une PR** — c'est désormais imposé
+  par la plateforme, plus seulement par la règle du projet.
+- **La CI doit être verte avant fusion, et cela se vérifie encore à la main.** Le
+  pipeline de sécurité `.github/workflows/security.yml` est en place (gosec,
+  govulncheck, Trivy, CodeQL, npm audit, SBOM, plus `dependency-review.yml`, cf.
+  `CLAUDE.md` §2 et §5) : un **CRITICAL** exploitable fait échouer le job sans
+  exception possible, un **HIGH** doit être corrigé ou couvert par une exception
+  écrite et datée dans [`docs/security-exceptions/`](docs/security-exceptions/).
+  Tant qu'aucun statut n'est requis côté plateforme, **c'est au relecteur de
+  constater le vert**, pas au bouton de fusion.
 - Revue obligatoire dès qu'il y a un second développeur actif sur le dépôt. En
   solo, l'auto-revue rigoureuse contre la Definition of Done (section suivante)
   tient lieu de garde-fou en attendant.
-- Un gabarit de PR est prévu en `.github/pull_request_template.md` — pas encore
-  créé. Tant qu'il n'existe pas, reprenez manuellement la checklist de
-  `docs/DEFINITION_OF_DONE.md` dans la description de votre PR, item par item,
-  en marquant explicitement "non applicable" ce qui ne concerne pas le changement
-  plutôt que de l'omettre silencieusement.
+- Le gabarit [`.github/pull_request_template.md`](.github/pull_request_template.md)
+  reprend intégralement la checklist de `docs/DEFINITION_OF_DONE.md`. Marquez
+  explicitement "N/A — <raison>" ce qui ne concerne pas le changement, plutôt que de
+  l'omettre silencieusement.
 
 ## Definition of Done
 
