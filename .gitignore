@@ -1,0 +1,36 @@
+# Secrets et configuration locale
+.env
+.env.local
+*.pem
+*.key
+*.p12
+
+# Go
+control-plane/bin/
+control-plane/*.exe
+control-plane/vendor/
+
+# Node / pnpm
+node_modules/
+.pnpm-store/
+dist/
+build/
+.next/
+.turbo/
+
+# Éditeurs / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.log
+
+# Terraform
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.backup
+infra/terraform/*.tfvars
+
+# Coverage
+coverage/
+*.cover
