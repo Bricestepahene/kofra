@@ -267,7 +267,7 @@ jobs:
       # Le SHA plutôt que le tag : un tag reste mutable, c'est précisément le
       # vecteur exploité ici (docs/DEPENDENCY_POLICY.md, §épinglage par SHA).
       - name: Trivy filesystem scan — CRITICAL uniquement
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
         with:
           scan-type: "fs"
           scan-ref: "."
@@ -288,7 +288,7 @@ jobs:
       # Même épinglage par SHA que le job trivy-critical ci-dessus
       # (CVE-2026-33634 — voir le commentaire détaillé là-bas).
       - name: Trivy filesystem scan — HIGH (rapport SARIF, non bloquant)
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
         with:
           scan-type: "fs"
           scan-ref: "."
@@ -315,7 +315,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Générer le SBOM (syft, SPDX JSON)
-        uses: anchore/sbom-action@v0.17.2
+        uses: anchore/sbom-action@v0.24.0
         with:
           path: "."
           format: "spdx-json"
