@@ -1,16 +1,94 @@
 # KOFRA — Manifeste fondateur v2.0
 
-> KOFRA construit l'infrastructure de confiance numérique de l'Afrique.
+# KOFRA — Trust Infrastructure Platform
 
-## Nous ne sommes pas un coffre-fort
+> Construire une plateforme mondiale de confiance permettant aux organisations
+> et aux logiciels de protéger, déléguer et utiliser des secrets, des identités
+> et des signatures cryptographiques sans perdre le contrôle.
 
-KOFRA commence par protéger les accès numériques des cabinets d'expertise comptable de la CEMAC.
+## Ce que KOFRA est
 
-Mais KOFRA n'a pas vocation à rester un gestionnaire de mots de passe.
+KOFRA est une Trust Infrastructure Platform.
 
-Nous construisons une couche de confiance : une infrastructure qui permet aux organisations de stocker des secrets, déléguer des accès, signer des engagements, conserver des preuves et contrôler leurs identités numériques sans perdre la souveraineté sur leurs données.
+KOFRA fournit une couche de confiance programmable aux entreprises et aux
+logiciels qui doivent protéger des actifs numériques sensibles, déléguer des
+droits, authentifier des acteurs, signer des actes et produire des preuves
+vérifiables.
 
-Le coffre-fort n'est pas le produit final. C'est le premier point d'entrée dans une infrastructure de confiance.
+KOFRA permet à une application métier de ne pas reconstruire elle-même les
+mécanismes les plus sensibles de confiance numérique.
+
+Lorsqu’un ERP, un logiciel RH, une plateforme financière, un cabinet
+comptable ou une application métier doit protéger un secret, déléguer un
+accès, vérifier une identité, signer un acte ou prouver une opération, la
+question doit devenir :
+
+> Pourquoi reconstruire une couche de confiance si KOFRA existe déjà ?
+
+## Ce que KOFRA n’est pas
+
+KOFRA n’est pas un gestionnaire de mots de passe.
+
+KOFRA n’est pas un simple coffre-fort numérique.
+
+KOFRA n’est pas un outil de signature électronique.
+
+Ces produits sont des applications ou capacités construites sur KOFRA. Ils ne
+définissent pas KOFRA.
+
+## Les cinq piliers
+
+1. **Secrets** — Protéger et utiliser les identifiants, tokens, clés API,
+   certificats et données sensibles sans les exposer inutilement.
+
+2. **Identity** — Représenter, authentifier et gouverner les personnes,
+   organisations, appareils et services.
+
+3. **Delegation** — Accorder, limiter, approuver, expirer et révoquer des
+   droits d’usage selon des politiques explicites.
+
+4. **Signature** — Signer, approuver, horodater et vérifier les actes
+   numériques selon le niveau d’assurance requis.
+
+5. **Audit** — Produire des preuves vérifiables des décisions et opérations
+   sensibles, sans révéler les secrets ou contenus protégés.
+
+## Invariants non négociables
+
+- Un secret métier n’est jamais stocké en clair.
+- Une clé ne protège jamais des données si elle est stockée avec elles.
+- Chaque accès est authentifié.
+- Chaque action est autorisée par une politique explicite.
+- Chaque opération sensible laisse une preuve.
+- La compromission d’un composant ne doit pas compromettre tout le système.
+- KOFRA utilise des primitives cryptographiques reconnues, auditées,
+  versionnées et migrables ; KOFRA n’invente aucun algorithme cryptographique.
+- Les preuves, logs et métriques ne doivent jamais exposer les secrets,
+  clés privées, tokens ou contenus confidentiels.
+
+## Marché initial, vision globale
+
+KOFRA commence avec les cabinets d’expertise comptable de la CEMAC.
+
+Ce marché initial fournit un problème concret et urgent : permettre au cabinet
+d’utiliser les accès numériques de ses clients sans partager ou exposer
+inutilement les secrets.
+
+Le marché initial ne limite pas la plateforme. Il valide les primitives
+fondamentales de KOFRA : identité, secrets, délégation, politique, preuve,
+révocation et continuité opérationnelle.
+
+À terme, KOFRA est conçu pour être consommé par des ERP, des logiciels RH,
+des outils financiers, des SaaS B2B et toute application ayant besoin d’une
+couche de confiance programmable.
+
+## Principe d’intégration
+
+Les produits consommateurs — SynkriaOps, ERP, RH ou partenaires — utilisent
+l’API, les SDK et les webhooks KOFRA.
+
+Ils ne partagent jamais directement la base de données, les sessions, les
+clés privées ou les secrets de KOFRA.
 
 ## Le problème
 
