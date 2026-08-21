@@ -84,7 +84,7 @@ jobs:
       # écrire un ruleset à l'aveugle produirait un faux vert (sujet ouvert O1).
       # La version doit rester alignée avec GOLANGCI_LINT_VERSION du Makefile.
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v9
         with:
           working-directory: control-plane
           version: ${{ env.GOLANGCI_LINT_VERSION }}
