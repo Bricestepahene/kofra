@@ -2,7 +2,43 @@
 
 ## 0. Directive suprême
 
-KOFRA gère des secrets appartenant à des tiers (cabinets d'expertise comptable et leurs clients). La barre de sécurité est celle des systèmes les plus critiques qui existent — gestion de secrets, infrastructure de confiance — et elle **ne baisse jamais** : aucun compromis n'est acceptable pour aller plus vite ou préserver une commodité.
+## KOFRA Product Identity — Mandatory
+
+KOFRA is a Trust Infrastructure Platform, not a password manager, a generic
+vault, or an e-signature application.
+
+KOFRA’s stable platform pillars are:
+1. Secrets
+2. Identity
+3. Delegation
+4. Signature
+5. Audit
+
+The CEMAC accounting-cabinet workflow is the initial market wedge. It must
+never be allowed to hard-code KOFRA into an accounting-only architecture.
+
+When designing modules, APIs, database schemas, events, documentation, or UI:
+- model reusable trust primitives first;
+- keep accounting-specific workflows as adapters, policies, connectors, or
+  applications on top of the platform;
+- do not couple KOFRA to SynkriaOps, ERP, HR, or any consumer product;
+- integrations consume KOFRA through versioned API, SDK, webhooks and explicit
+  contracts only.
+
+Non-negotiable security invariants:
+- never store, log, mock with, print, commit, or expose plaintext secrets;
+- never store a cryptographic key beside the data it protects;
+- authenticate every access;
+- authorize every sensitive action through explicit policy evaluation;
+- record an auditable proof for every sensitive operation;
+- limit blast radius: compromise of one user, device, vault, tenant, or service
+  must not compromise the whole platform;
+- use only standard, reviewed cryptographic primitives and libraries;
+- never invent cryptographic algorithms, protocols, or parameter choices.
+
+If an assigned task conflicts with these principles, stop. Do not implement a
+shortcut. Record the conflict in docs/DECISIONS_NEEDED.md and request human
+approval.
 
 Avant tout LOT (feature, refactor, migration), relire la demande avec une lentille sécurité/cryptographie senior. Si la spec présente un angle mort sur la confidentialité, l'intégrité, la révocation, la preuve, la migration de protocole ou la conformité, **ne pas implémenter mécaniquement** : arrêter, signaler le risque à Brice, proposer un LOT-bis.
 
